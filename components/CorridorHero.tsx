@@ -1,11 +1,19 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, Compass } from 'lucide-react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Compass,
+  Radio,
+  Sparkles,
+} from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useCorridor } from '@/context/corridor-context';
+import { AmountDisplay } from '@/components/ui/corridor-primitives';
 import { CORRIDOR_NODES, DESIGN_TOKENS } from '@/lib/design-tokens';
-import { calculateTransferQuote, formatTabularNumber } from '@/lib/quote-engine';
+import { calculateTransferQuote } from '@/lib/quote-engine';
 
 export function CorridorHero() {
   const {
@@ -13,451 +21,333 @@ export function CorridorHero() {
     dir,
     language,
     settings,
-    setActiveView,
+    openTrackingForId,
+    applyQuoteToTransferFlow,
   } = useCorridor();
 
   const prefersReducedMotion = useReducedMotion();
-  const [activeStageIndex, setActiveStageIndex] = useState(1); // Default focal waypoint: 02 QUOTE
-  const [userPausedAuto, setUserPausedAuto] = useState(false);
+  const [activeStageIndex, setActiveStageIndex] = useState(0);
+  const [userInteractedWithStage, setUserInteractedWithStage] = useState(false);
+  const [quickTrackInput, setQuickTrackInput] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Deterministic live calculation for the single hero example: 2,500 MRU -> XOF
-  const heroQuote = calculateTransferQuote(2500, 'MRU_TO_XOF', settings);
-
-  // Subtle auto-progression across the 5 corridor stages (paused under prefers-reduced-motion or user selection)
   useEffect(() => {
-    if (prefersReducedMotion || userPausedAuto) return;
+    setIsMounted(true);
+  }, []);
+
+  // Live deterministic demo calculation for 2,500 MRU -> XOF
+  const heroSampleQuote = calculateTransferQuote(2500, 'MRU_TO_XOF', settings);
+
+  // Controlled auto-progression across the 5 corridor stations when idle
+  useEffect(() => {
+    if (prefersReducedMotion || userInteractedWithStage) return;
     const timer = setInterval(() => {
       setActiveStageIndex((prev) => (prev + 1) % 5);
-    }, 3400);
+    }, 4200);
     return () => clearInterval(timer);
-  }, [prefersReducedMotion, userPausedAuto]);
+  }, [prefersReducedMotion, userInteractedWithStage]);
 
-  // Subtle scroll-linked stage response across the top viewport
-  useEffect(() => {
-    const handleScroll = () => {
-      if (typeof window === 'undefined' || userPausedAuto) return;
-      const scrollY = window.scrollY;
-      if (scrollY > 20 && scrollY < 500) {
-        const idx = Math.min(4, Math.max(0, Math.floor((scrollY / 420) * 5)));
-        setActiveStageIndex(idx);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [userPausedAuto]);
-
-  const handleStartTransfer = () => {
+  const scrollToWorkspace = () => {
     if (typeof document !== 'undefined') {
-      const target = document.getElementById('live-quote-bridge');
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
+      const el = document.getElementById('corridor-workspace');
+      if (el) {
+        el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
       }
     }
   };
 
-  const handleOpenTracking = () => {
-    setActiveView('track');
+  const handleQuickTrackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetId = quickTrackInput.trim() || 'SL-261002-A7K2';
+    openTrackingForId(targetId);
   };
 
-  const stages = dict.hero.stages;
-  const activeStage = stages[activeStageIndex] || stages[1];
-  const progressPercent = (activeStageIndex / 4) * 100;
-  const CtaArrow = dir === 'rtl' ? ArrowLeft : ArrowRight;
+  const ArrowDirectional = dir === 'rtl' ? ArrowLeft : ArrowRight;
+  const activeStage = dict.hero.stages[activeStageIndex] || dict.hero.stages[0];
+  const progressPercentage = ((activeStageIndex + 1) / 5) * 100;
 
   return (
-    <section
-      aria-label="SaharaLink Transfer Corridor Hero"
-      className="relative min-h-[100svh] w-full bg-[#10161F] text-[#FAF8F2] flex flex-col justify-between overflow-hidden pt-20 pb-6 sm:pt-24 sm:pb-10 border-b border-[#14263D]"
-    >
-      {/* Architectural Material Depth & Fine Calibration Grid */}
+    <section className="relative min-h-[100svh] flex flex-col justify-between bg-[#10161F] text-[#FAF8F2] overflow-hidden">
+      {/* Cinematic Architectural Background Texture */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_35%,rgba(20,38,61,0.75)_0%,rgba(16,22,31,0.98)_70%)]"
+        className="pointer-events-none absolute inset-0 opacity-25 bg-[linear-gradient(to_right,rgba(201,209,208,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,209,208,0.08)_1px,transparent_1px)] bg-[size:64px_64px]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-20 bg-[linear-gradient(to_right,rgba(201,209,208,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,209,208,0.08)_1px,transparent_1px)] bg-[size:64px_64px]"
+        className="pointer-events-none absolute -top-40 start-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-[#14263D]/60 via-[#14263D]/20 to-transparent blur-3xl opacity-60"
       />
 
-      {/* Horizontal Coordinate Hairline Across the Viewport */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 inset-x-0 h-[1px] bg-[#C9D1D0]/8 hidden lg:block"
-      />
+      {/* Main Full-Viewport Hero Body */}
+      <div className="relative flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 pt-10 sm:pt-14 pb-8 flex flex-col justify-center">
+        <div className="space-y-8 sm:space-y-10">
+          {/* Top Corridor Kicker Bar */}
+          <div className="inline-flex flex-wrap items-center gap-3 text-xs font-mono text-[#C9D1D0] border-b border-[#C9D1D0]/20 pb-3">
+            <span className="w-2 h-2 bg-[#DE655A] animate-pulse" aria-hidden="true" />
+            <span className="font-semibold tracking-wider">{dict.hero.kicker}</span>
+            <span aria-hidden="true" className="text-[#C9D1D0]/40">
+              /
+            </span>
+            <span dir="ltr" className="font-bold text-[#7FAEA3]">
+              NKC (MRU) ↔ ABJ (XOF)
+            </span>
+            <span aria-hidden="true" className="text-[#C9D1D0]/40">
+              /
+            </span>
+            <span className="text-[#C9D1D0]/75">
+              1 MRU = {settings.exchangeRateMruToXof.toFixed(2)} XOF
+            </span>
+          </div>
 
-      {/* Main Full-Screen Asymmetric Composition */}
-      <div className="relative z-10 max-w-[1440px] w-full mx-auto px-4 sm:px-8 my-auto py-4 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* PRIMARY EDITORIAL AREA (5 Columns on Desktop) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={DESIGN_TOKENS.motion.enter}
-            className="lg:col-span-5 space-y-6 sm:space-y-8"
-          >
-            {/* Quiet Corridor Designation */}
-            <div className="inline-flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#14263D] border border-[#C9D1D0]/20 font-mono text-[11px] font-semibold tracking-wider text-[#FAF8F2]">
-                <span className="w-1.5 h-1.5 bg-[#DE655A]" aria-hidden="true" />
-                <span dir="ltr">MRU ↔ XOF</span>
+          {/* Large Architectural Editorial Headline */}
+          <div className="max-w-4xl space-y-4 sm:space-y-5">
+            <h1 className="text-4xl sm:text-6xl lg:text-[72px] font-semibold text-[#FAF8F2] leading-[1.12] tracking-tight text-balance">
+              <span className="block">{dict.hero.headlineLine1}</span>
+              <span className="block text-[#7FAEA3] mt-1 sm:mt-2">
+                {dict.hero.headlineLine2}
               </span>
-              <span className="text-xs font-medium text-[#C9D1D0]/85 tracking-wide">
-                {dict.hero.kicker}
-              </span>
-            </div>
+            </h1>
 
-            {/* Architectural Headline */}
-            <div className="space-y-3 sm:space-y-4">
-              <h1 className="text-[2.35rem] sm:text-5xl lg:text-[3.65rem] xl:text-[4rem] font-semibold tracking-tight text-[#FAF8F2] leading-[1.14]">
-                <span className="block">{dict.hero.headlineLine1}</span>
-                <span className="block text-[#7FAEA3] mt-1">
-                  {dict.hero.headlineLine2}
-                </span>
-              </h1>
+            <p className="text-base sm:text-xl text-[#C9D1D0]/90 max-w-2xl leading-relaxed">
+              {dict.hero.subtitle}
+            </p>
+          </div>
 
-              <p className="text-base sm:text-lg text-[#C9D1D0]/85 leading-relaxed max-w-[46ch] font-normal">
-                {dict.hero.subtitle}
-              </p>
-            </div>
+          {/* Primary CTA + Quick Track Instrument */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-2xl pt-1">
+            <button
+              type="button"
+              onClick={scrollToWorkspace}
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#FAF8F2] text-[#10161F] hover:bg-[#7FAEA3] active:scale-[0.99] transition-all text-sm font-semibold whitespace-nowrap min-h-[54px] cursor-pointer shadow-lg"
+            >
+              <span>{dict.hero.primaryCta}</span>
+              <ArrowDown className="w-4 h-4 text-[#14263D]" aria-hidden="true" />
+            </button>
 
-            {/* Bespoke Corridor CTA Group */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-1">
+            <form
+              onSubmit={handleQuickTrackSubmit}
+              className="flex-1 flex items-stretch border border-[#C9D1D0]/30 bg-[#14263D]/70 backdrop-blur-xs min-h-[54px]"
+            >
+              <label htmlFor="hero-quick-track" className="sr-only">
+                {dict.hero.secondaryCta}
+              </label>
+              <input
+                id="hero-quick-track"
+                type="text"
+                dir="ltr"
+                value={quickTrackInput}
+                onChange={(e) => setQuickTrackInput(e.target.value)}
+                placeholder={dict.hero.quickTrackPlaceholder}
+                className="w-full px-4 py-2 text-xs font-mono font-semibold text-[#FAF8F2] placeholder:text-[#C9D1D0]/50 bg-transparent focus:outline-none uppercase"
+              />
               <button
-                type="button"
-                onClick={handleStartTransfer}
-                className="group relative px-6 py-4 bg-[#DE655A] hover:bg-[#d3564b] text-[#FAF8F2] text-sm sm:text-base font-semibold inline-flex items-center justify-between sm:justify-center gap-4 transition-all min-h-[54px] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF8F2]"
+                type="submit"
+                className="px-5 bg-[#14263D] hover:bg-[#FAF8F2] text-[#FAF8F2] hover:text-[#10161F] border-s border-[#C9D1D0]/25 text-xs font-semibold inline-flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <span className="whitespace-nowrap">{dict.hero.primaryCta}</span>
-                <span
-                  aria-hidden="true"
-                  className="inline-flex items-center gap-1.5"
-                >
-                  <span className="w-6 group-hover:w-10 h-[1.5px] bg-[#FAF8F2] transition-all duration-200" />
-                  <CtaArrow className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenTracking}
-                className="px-6 py-4 bg-transparent hover:bg-[#14263D] text-[#F3F0E8] border border-[#C9D1D0]/30 hover:border-[#7FAEA3] text-sm sm:text-base font-medium inline-flex items-center justify-center gap-2.5 transition-colors min-h-[54px] whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7FAEA3]"
-              >
-                <Compass className="w-4 h-4 text-[#7FAEA3]" aria-hidden="true" />
+                <Compass className="w-3.5 h-3.5 text-[#DE655A]" aria-hidden="true" />
                 <span>{dict.hero.secondaryCta}</span>
               </button>
+            </form>
+          </div>
+
+          {/* THE LIVE TRANSFER CORRIDOR — Prominent Node-to-Node Transformation Strip */}
+          <div className="border border-[#C9D1D0]/25 bg-[#14263D]/60 backdrop-blur-md p-5 sm:p-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#C9D1D0]/15">
+              <div className="flex items-center gap-2 text-xs font-mono text-[#7FAEA3]">
+                <Radio className="w-3.5 h-3.5 text-[#7FAEA3] animate-pulse" aria-hidden="true" />
+                <span className="font-semibold tracking-wider">THE LIVE TRANSFER CORRIDOR</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-mono text-[#C9D1D0]">
+                <span>
+                  {dict.quote.feeLabel}:{' '}
+                  <strong className="text-[#FAF8F2]">{settings.fixedFeeMru} MRU</strong> (
+                  {language === 'ar' ? 'ثابتة' : 'Fixe'})
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  1 MRU ={' '}
+                  <strong className="text-[#7FAEA3]">{settings.exchangeRateMruToXof.toFixed(2)} XOF</strong>
+                </span>
+              </div>
             </div>
-          </motion.div>
 
-          {/* SIGNATURE PRODUCT VISUAL: THE LIVE TRANSFER CORRIDOR (7 Columns on Desktop) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...DESIGN_TOKENS.motion.enter, delay: 0.08 }}
-            className="lg:col-span-7 relative"
-          >
-            {/* Open Unboxed Financial Instrument Plane */}
-            <div className="relative pt-2 sm:pt-4 lg:ps-6">
-              {/* Top Technical Coordinate Hairline */}
-              <div
-                dir="ltr"
-                className="flex items-center justify-between text-[10px] font-mono tracking-[0.18em] text-[#C9D1D0]/55 pb-4 border-b border-[#C9D1D0]/15"
-              >
-                <span>CORRIDOR INSTRUMENT · NKC ──► ABJ</span>
-                <span className="text-[#7FAEA3]">
-                  STAGE {activeStage.number}/05 · {activeStage.code}
-                </span>
-              </div>
-
-              {/* ONE LIVE QUOTE MOMENT: 2,500 MRU ---> 38,115 XOF */}
-              <div
-                dir="ltr"
-                className="py-6 sm:py-9 grid grid-cols-1 sm:grid-cols-11 gap-6 items-center border-b border-[#C9D1D0]/15"
-              >
-                {/* Origin Endpoint & Sent Amount */}
-                <div className="sm:col-span-5 space-y-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-3 w-3 items-center justify-center">
-                      <span className="absolute inline-flex h-full w-full border border-[#FAF8F2]/60" />
-                      <span className="relative inline-flex h-1.5 w-1.5 bg-[#FAF8F2]" />
-                    </span>
-                    <span className="font-mono text-xs font-bold tracking-widest text-[#FAF8F2]">
-                      {CORRIDOR_NODES.MRU.stationCode}
-                    </span>
-                    <span className="text-xs text-[#C9D1D0]/70 font-mono">
-                      · {CORRIDOR_NODES.MRU.countryFr} · MRU
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline gap-2.5 pt-1">
-                    <span className="font-mono text-3xl sm:text-4xl xl:text-[2.75rem] font-bold tabular-nums tracking-tight text-[#FAF8F2]">
-                      {formatTabularNumber(heroQuote.amountSent, 0)}
-                    </span>
-                    <span className="font-mono text-sm sm:text-base font-semibold text-[#C9D1D0]">
-                      MRU
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] font-mono text-[#C9D1D0]/65">
-                    {language === 'ar'
-                      ? `${CORRIDOR_NODES.MRU.countryAr} (${CORRIDOR_NODES.MRU.cityAr})`
-                      : `${CORRIDOR_NODES.MRU.countryFr} (${CORRIDOR_NODES.MRU.cityFr})`}
-                  </p>
-                </div>
-
-                {/* Center Transformation Vector */}
-                <div className="sm:col-span-1 flex sm:flex-col items-center justify-center gap-2 py-1">
-                  <div className="h-[1px] sm:h-10 w-full sm:w-[1px] bg-[#C9D1D0]/20 relative overflow-hidden">
-                    {!prefersReducedMotion && (
-                      <motion.span
-                        className="absolute inset-0 bg-[#DE655A]"
-                        animate={{
-                          opacity: [0.2, 1, 0.2],
-                        }}
-                        transition={{
-                          duration: 2.2,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    )}
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[#DE655A] shrink-0 hidden sm:block" />
-                  <ArrowDown className="w-4 h-4 text-[#DE655A] shrink-0 sm:hidden" />
-                </div>
-
-                {/* Destination Endpoint & Net Received Amount */}
-                <div className="sm:col-span-5 sm:text-right space-y-2">
-                  <div className="flex items-center sm:justify-end gap-2.5">
-                    <span className="relative flex h-3 w-3 items-center justify-center sm:order-3">
-                      <span className="absolute inline-flex h-full w-full border border-[#7FAEA3]/70" />
-                      <span className="relative inline-flex h-1.5 w-1.5 bg-[#7FAEA3]" />
-                    </span>
-                    <span className="font-mono text-xs font-bold tracking-widest text-[#7FAEA3] sm:order-2">
-                      {CORRIDOR_NODES.XOF.stationCode}
-                    </span>
-                    <span className="text-xs text-[#C9D1D0]/70 font-mono sm:order-1">
-                      {CORRIDOR_NODES.XOF.countryFr} · XOF ·
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline sm:justify-end gap-2.5 pt-1">
-                    <motion.span
-                      key={heroQuote.estimatedReceived}
-                      initial={prefersReducedMotion ? false : { opacity: 0.5, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={DESIGN_TOKENS.motion.fast}
-                      className="font-mono text-3xl sm:text-4xl xl:text-[2.75rem] font-bold tabular-nums tracking-tight text-[#7FAEA3]"
-                    >
-                      {formatTabularNumber(heroQuote.estimatedReceived, 0)}
-                    </motion.span>
-                    <span className="font-mono text-sm sm:text-base font-semibold text-[#7FAEA3]">
-                      XOF
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] font-mono text-[#C9D1D0]/65">
-                    {language === 'ar'
-                      ? `${CORRIDOR_NODES.XOF.countryAr} (${CORRIDOR_NODES.XOF.cityAr})`
-                      : `${CORRIDOR_NODES.XOF.countryFr} (${CORRIDOR_NODES.XOF.cityFr})`}
-                  </p>
-                </div>
-              </div>
-
-              {/* Subtle Rate & Fee Calibration Strip */}
-              <div
-                dir="ltr"
-                className="py-3.5 flex flex-wrap items-center justify-between gap-4 text-xs font-mono text-[#C9D1D0]/80 border-b border-[#C9D1D0]/15"
-              >
-                <div className="flex items-center gap-4">
-                  <span>
-                    1 MRU ={' '}
-                    <strong className="text-[#FAF8F2]">
-                      {settings.exchangeRateMruToXof.toFixed(2)} XOF
-                    </strong>
+            {/* Origin <-> Route <-> Destination Trajectory */}
+            <div className="grid grid-cols-1 md:grid-cols-11 items-center gap-4 md:gap-2">
+              {/* Origin Station: NKC / MRU */}
+              <div className="md:col-span-4 border border-[#C9D1D0]/20 bg-[#10161F]/80 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-[#FAF8F2]">
+                    NKC · MRU
                   </span>
-                  <span className="text-[#C9D1D0]/30">|</span>
-                  <span>
-                    Fee:{' '}
-                    <strong className="text-[#FAF8F2]">
-                      {settings.fixedFeeMru} MRU
-                    </strong>
+                  <span className="w-2.5 h-2.5 bg-[#FAF8F2]" />
+                </div>
+                <p className="text-xs text-[#C9D1D0] mt-1 font-medium">
+                  {language === 'ar'
+                    ? `${CORRIDOR_NODES.MRU.countryAr} · ${CORRIDOR_NODES.MRU.cityAr}`
+                    : `${CORRIDOR_NODES.MRU.countryFr} · ${CORRIDOR_NODES.MRU.cityFr}`}
+                </p>
+                <div className="mt-3 pt-2.5 border-t border-[#C9D1D0]/15">
+                  <AmountDisplay amount={2500} currency="MRU" size="lg" inverted />
+                  <span className="text-[11px] font-mono text-[#C9D1D0]/70 block mt-0.5">
+                    {dict.quote.youSendTag}
                   </span>
                 </div>
-                <span className="text-[11px] text-[#7FAEA3] tracking-wider uppercase">
-                  NET CONVERTED: {formatTabularNumber(heroQuote.netConvertibleAmount, 0)} MRU
-                </span>
               </div>
 
-              {/* THE 5 CORRIDOR STAGES: MRU ●────●────●────●────● XOF */}
-              <div className="pt-7 pb-3" dir="ltr">
-                {/* Calibrated SVG + DOM Route Track */}
-                <div className="relative">
-                  {/* Fine SVG Ruler Ticks */}
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 800 24"
-                    className="w-full h-5 overflow-visible mb-1 opacity-40"
-                    preserveAspectRatio="none"
-                  >
-                    {Array.from({ length: 41 }).map((_, idx) => {
-                      const x = idx * 20;
-                      const isMajor = idx % 10 === 0;
-                      return (
-                        <line
-                          key={idx}
-                          x1={x}
-                          y1={isMajor ? 2 : 8}
-                          x2={x}
-                          y2={16}
-                          stroke={isMajor ? '#FAF8F2' : '#C9D1D0'}
-                          strokeWidth={isMajor ? '1.5' : '1'}
-                        />
-                      );
-                    })}
-                  </svg>
+              {/* Animated Signal Pulse Bridge */}
+              <div className="md:col-span-3 flex flex-col items-center justify-center px-2 py-2">
+                <span
+                  dir="ltr"
+                  className="font-mono text-xs text-[#7FAEA3] font-bold tabular-nums mb-1.5"
+                >
+                  × {settings.exchangeRateMruToXof.toFixed(2)}
+                </span>
 
-                  {/* Main Horizontal Corridor Rail */}
-                  <div className="relative h-[2px] w-full bg-[#C9D1D0]/25">
-                    {/* Active Illuminated Route Segment */}
-                    <motion.div
-                      className="absolute top-0 left-0 h-full bg-[#7FAEA3]"
-                      animate={{ width: `${progressPercent}%` }}
-                      transition={DESIGN_TOKENS.motion.standard}
-                    />
-
-                    {/* Travelling Signal Pulse Along the Corridor */}
-                    {!prefersReducedMotion && (
+                <div className="w-full flex items-center">
+                  <div className="h-[2px] flex-1 bg-[#C9D1D0]/25 relative overflow-hidden">
+                    {isMounted && !prefersReducedMotion && (
                       <motion.div
-                        aria-hidden="true"
-                        className="absolute -top-[3px] h-2 w-12 bg-gradient-to-r from-transparent via-[#DE655A] to-[#7FAEA3]"
-                        animate={{ left: ['0%', '92%'] }}
+                        className="absolute inset-y-0 w-1/2 bg-[#DE655A]"
+                        animate={{
+                          x: dir === 'rtl' ? ['100%', '-100%'] : ['-100%', '100%'],
+                        }}
                         transition={{
-                          duration: 3.6,
+                          duration: 2.1,
                           repeat: Infinity,
                           ease: 'linear',
                         }}
                       />
                     )}
                   </div>
+                  <ArrowDirectional className="w-4 h-4 text-[#7FAEA3] mx-1.5 shrink-0" />
+                  <div className="h-[2px] flex-1 bg-[#C9D1D0]/25" />
+                </div>
 
-                  {/* 5 Calibrated Waypoint Nodes */}
-                  <div className="grid grid-cols-5 gap-1 -mt-2.5 relative z-10">
-                    {stages.map((stage, idx) => {
-                      const isActive = idx === activeStageIndex;
-                      const isPassed = idx < activeStageIndex;
+                <button
+                  type="button"
+                  onClick={() => applyQuoteToTransferFlow('MRU_TO_XOF', 2500, 2)}
+                  className="mt-2 text-[11px] font-mono text-[#C9D1D0] hover:text-[#FAF8F2] underline underline-offset-4 cursor-pointer inline-flex items-center gap-1"
+                >
+                  <span>{dict.hero.continueTransferCta || 'ابدأ بهذا المبلغ'}</span>
+                  <Sparkles className="w-3 h-3 text-[#7FAEA3]" />
+                </button>
+              </div>
 
-                      return (
-                        <button
-                          key={stage.code}
-                          type="button"
-                          onClick={() => {
-                            setActiveStageIndex(idx);
-                            setUserPausedAuto(true);
-                          }}
-                          className={`group flex flex-col ${
-                            idx === 0
-                              ? 'items-start text-left'
-                              : idx === 4
-                              ? 'items-end text-right'
-                              : 'items-center text-center'
-                          } cursor-pointer focus-visible:outline-2 focus-visible:outline-[#7FAEA3] pt-0.5`}
-                        >
-                          {/* Geometric Node Marker */}
-                          <span
-                            className={`w-4 h-4 flex items-center justify-center border transition-all duration-200 ${
-                              isActive
-                                ? 'bg-[#DE655A] border-[#FAF8F2] scale-110 ring-4 ring-[#DE655A]/25'
-                                : isPassed
-                                ? 'bg-[#7FAEA3] border-[#7FAEA3]'
-                                : 'bg-[#10161F] border-[#C9D1D0]/45 group-hover:border-[#FAF8F2]'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 ${
-                                isActive
-                                  ? 'bg-[#FAF8F2]'
-                                  : isPassed
-                                  ? 'bg-[#10161F]'
-                                  : 'bg-transparent'
-                              }`}
-                            />
-                          </span>
-
-                          {/* Stage Number & Code */}
-                          <span
-                            className={`mt-2.5 font-mono text-[10px] sm:text-[11px] tracking-wider transition-colors ${
-                              isActive
-                                ? 'text-[#FAF8F2] font-bold'
-                                : isPassed
-                                ? 'text-[#7FAEA3] font-semibold'
-                                : 'text-[#C9D1D0]/55 group-hover:text-[#C9D1D0]'
-                            }`}
-                          >
-                            <span className="hidden sm:inline">{stage.number} </span>
-                            {stage.code}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* Destination Station: ABJ / XOF */}
+              <div className="md:col-span-4 border border-[#7FAEA3]/40 bg-[#10161F]/80 p-4 text-end">
+                <div className="flex items-center justify-between">
+                  <span className="w-2.5 h-2.5 bg-[#DE655A]" />
+                  <span className="font-mono text-xs font-bold text-[#FAF8F2]">
+                    ABJ · XOF
+                  </span>
+                </div>
+                <p className="text-xs text-[#C9D1D0] mt-1 font-medium">
+                  {language === 'ar'
+                    ? `${CORRIDOR_NODES.XOF.countryAr} · ${CORRIDOR_NODES.XOF.cityAr}`
+                    : `${CORRIDOR_NODES.XOF.countryFr} · ${CORRIDOR_NODES.XOF.cityFr}`}
+                </p>
+                <div className="mt-3 pt-2.5 border-t border-[#C9D1D0]/15">
+                  <AmountDisplay
+                    amount={heroSampleQuote.estimatedReceived}
+                    currency="XOF"
+                    size="lg"
+                    inverted
+                    highlight
+                  />
+                  <span className="text-[11px] font-mono text-[#7FAEA3] block mt-0.5">
+                    {dict.quote.recipientGetsTag}
+                  </span>
                 </div>
               </div>
-
-              {/* Active Stage Quiet Editorial Caption */}
-              <div className="mt-4 pt-4 border-t border-[#C9D1D0]/15 flex flex-wrap items-baseline justify-between gap-3 min-h-[52px]">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeStage.code}
-                    initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
-                    transition={DESIGN_TOKENS.motion.fast}
-                    className="flex flex-wrap items-baseline gap-2.5"
-                  >
-                    <span className="font-mono text-xs font-bold text-[#DE655A]">
-                      {activeStage.number} — {activeStage.code}
-                    </span>
-                    <span className="text-sm sm:text-base font-semibold text-[#FAF8F2]">
-                      «{activeStage.quote}»
-                    </span>
-                    <span className="text-xs text-[#C9D1D0]/75">
-                      {activeStage.detail}
-                    </span>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
-      {/* Seamless First-Scroll Transition Spine Connecting Hero to Live Quote Section */}
-      <div className="relative z-10 max-w-[1440px] w-full mx-auto px-4 sm:px-8 pt-2">
-        <div className="flex items-center justify-between border-t border-[#C9D1D0]/15 pt-4">
-          <div className="flex items-center gap-3 text-[11px] font-mono text-[#C9D1D0]/65">
-            <span className="w-1.5 h-1.5 bg-[#7FAEA3]" aria-hidden="true" />
-            <span dir="ltr">NKC (MRU) ──────► ABJ (XOF)</span>
+      {/* Five Quiet Calibrated Corridor Stages (Bottom Rail) */}
+      <div className="relative border-t border-[#C9D1D0]/20 bg-[#10161F]/95 backdrop-blur-md">
+        {/* Continuous Calibrated Progress Rail */}
+        <div className="h-1 bg-[#14263D] overflow-hidden">
+          <motion.div
+            className="h-full bg-[#7FAEA3]"
+            animate={{ width: `${progressPercentage}%` }}
+            transition={DESIGN_TOKENS.motion.standard}
+          />
+        </div>
+
+        <div className="max-w-[1360px] mx-auto px-4 sm:px-6 py-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+            {dict.hero.stages.map((stage, idx) => {
+              const isActive = idx === activeStageIndex;
+              const isPassed = idx < activeStageIndex;
+
+              return (
+                <button
+                  key={stage.code}
+                  type="button"
+                  onClick={() => {
+                    setUserInteractedWithStage(true);
+                    setActiveStageIndex(idx);
+                  }}
+                  className={`p-3 text-start border transition-all cursor-pointer min-h-[68px] flex flex-col justify-between ${
+                    isActive
+                      ? 'bg-[#FAF8F2] text-[#10161F] border-[#FAF8F2] shadow-sm'
+                      : isPassed
+                      ? 'bg-[#14263D]/80 text-[#FAF8F2] border-[#7FAEA3]/40'
+                      : 'bg-[#14263D]/30 text-[#C9D1D0]/70 border-[#C9D1D0]/15 hover:border-[#C9D1D0]/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span
+                      className={`font-mono text-xs font-bold tabular-nums ${
+                        isActive
+                          ? 'text-[#DE655A]'
+                          : isPassed
+                          ? 'text-[#7FAEA3]'
+                          : 'text-[#C9D1D0]/60'
+                      }`}
+                    >
+                      {stage.number}
+                    </span>
+                    <span
+                      className={`w-1.5 h-1.5 ${
+                        isActive
+                          ? 'bg-[#DE655A]'
+                          : isPassed
+                          ? 'bg-[#7FAEA3]'
+                          : 'bg-[#C9D1D0]/30'
+                      }`}
+                    />
+                  </div>
+                  <div className="mt-1">
+                    <span className="font-mono text-[10px] font-bold tracking-wider block">
+                      {stage.code}
+                    </span>
+                    <span className="text-[11px] font-medium truncate block opacity-85">
+                      {stage.label}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          <button
-            type="button"
-            onClick={handleStartTransfer}
-            className="group inline-flex items-center gap-2.5 text-xs font-mono text-[#C9D1D0]/80 hover:text-[#FAF8F2] transition-colors cursor-pointer"
-          >
-            <span>{dict.hero.continueTransferCta}</span>
-            <span className="w-5 h-5 border border-[#C9D1D0]/30 group-hover:border-[#DE655A] flex items-center justify-center">
-              <ArrowDown className="w-3 h-3 text-[#DE655A]" />
+          {/* Active Stage Editorial Subtitle */}
+          <div className="mt-3 pt-2.5 border-t border-[#C9D1D0]/15 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[#7FAEA3] font-bold">
+                0{activeStageIndex + 1} / 05 · {activeStage.code}
+              </span>
+              <span className="text-[#FAF8F2] font-semibold">
+                &ldquo;{activeStage.quote}&rdquo;
+              </span>
+            </div>
+            <span className="text-[#C9D1D0]/80 text-[11px]">
+              {activeStage.detail}
             </span>
-          </button>
+          </div>
         </div>
       </div>
-
-      {/* Continuous Vertical Corridor Line Extending Downward into Section 2 */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[1.5px] h-6 bg-gradient-to-b from-[#7FAEA3] to-[#DE655A]"
-      />
     </section>
   );
 }
