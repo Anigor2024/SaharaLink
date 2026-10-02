@@ -46,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="ar"
       dir="rtl"
+      suppressHydrationWarning
       className={`${ibmPlexArabic.variable} ${manrope.variable} ${ibmPlexMono.variable}`}
     >
       <body
