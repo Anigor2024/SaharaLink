@@ -1,10 +1,17 @@
-import { calculateTransferQuote, generateTransferId } from '@/lib/quote-engine';
+import {
+  calculateTransferQuote,
+  createDemoReceiptSvgDataUrl,
+  formatCurrencyAmount,
+  generateTransferId,
+} from '@/lib/quote-engine';
 import { DEFAULT_CORRIDOR_SETTINGS, getSeededTransfers } from '@/services/demo-seed';
+import { receiptStorage } from '@/services/receipt-storage';
 import {
   ChatMessage,
   CorridorSettings,
   CreateTransferInput,
   DataService,
+  StorageOperationError,
   TransferRequest,
 } from '@/types/corridor';
 
@@ -18,51 +25,89 @@ const STORAGE_KEYS = {
 export const BROADCAST_CHANNEL_NAME = 'saharalink_corridor_sync_v1';
 
 export type SyncEventPayload =
-  | { type: 'TRANSFERS_UPDATED'; transfers: TransferRequest[] }
-  | { type: 'SETTINGS_UPDATED'; settings: CorridorSettings }
-  | { type: 'DEMO_RESET'; transfers: TransferRequest[]; settings: CorridorSettings };
+  | { type: 'TRANSFERS_UPDATED'; transfers: TransferRequest[]; syncId: string }
+  | { type: 'SETTINGS_UPDATED'; settings: CorridorSettings; syncId: string }
+  | {
+      type: 'DEMO_RESET';
+      transfers: TransferRequest[];
+      settings: CorridorSettings;
+      syncId: string;
+    };
 
 /**
  * LocalDemoDataService
- * Browser-persisted repository for prototype mode with cross-tab BroadcastChannel sync.
- * UI components never access localStorage directly; they interact strictly through DataService.
+ * Browser-persisted repository for prototype mode with:
+ * - IndexedDB Receipt Vault integration (Technical Fix 7)
+ * - Accurate chronological ISO 8601 timestamps (Technical Fix 8)
+ * - Deduplicated BroadcastChannel + storage event sync with cleanup (Technical Fix 9)
+ * - User-meaningful StorageOperationError reporting (Technical Fix 10)
  */
 export class LocalDemoDataService implements DataService {
   private channel: BroadcastChannel | null = null;
   private listeners: Set<(payload: SyncEventPayload) => void> = new Set();
+  private lastProcessedSyncId: string = '';
+  private boundStorageHandler: ((event: StorageEvent) => void) | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
-      if ('BroadcastChannel' in window) {
-        try {
-          this.channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
-          this.channel.onmessage = (event: MessageEvent<SyncEventPayload>) => {
-            if (event.data) {
-              this.notifyListeners(event.data);
-            }
-          };
-        } catch {
-          this.channel = null;
-        }
-      }
+      this.initSyncChannels();
+    }
+  }
 
-      window.addEventListener('storage', (event) => {
+  private initSyncChannels() {
+    if ('BroadcastChannel' in window && !this.channel) {
+      try {
+        this.channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        this.channel.onmessage = async (event: MessageEvent<SyncEventPayload>) => {
+          const data = event.data;
+          if (!data || data.syncId === this.lastProcessedSyncId) return;
+          this.lastProcessedSyncId = data.syncId;
+
+          if (data.type === 'TRANSFERS_UPDATED') {
+            const hydrated = await this.hydrateReceipts(data.transfers);
+            this.notifyListeners({ ...data, transfers: hydrated });
+          } else {
+            this.notifyListeners(data);
+          }
+        };
+      } catch {
+        this.channel = null;
+      }
+    }
+
+    if (!this.boundStorageHandler) {
+      this.boundStorageHandler = async (event: StorageEvent) => {
         if (event.key === STORAGE_KEYS.TRANSFERS && event.newValue) {
           try {
-            const transfers = JSON.parse(event.newValue) as TransferRequest[];
-            this.notifyListeners({ type: 'TRANSFERS_UPDATED', transfers });
+            const rawTransfers = JSON.parse(event.newValue) as TransferRequest[];
+            const hydrated = await this.hydrateReceipts(rawTransfers);
+            const syncId = `storage-tx-${Date.now()}`;
+            this.lastProcessedSyncId = syncId;
+            this.notifyListeners({
+              type: 'TRANSFERS_UPDATED',
+              transfers: hydrated,
+              syncId,
+            });
           } catch {
             // Ignore malformed storage payload
           }
         } else if (event.key === STORAGE_KEYS.SETTINGS && event.newValue) {
           try {
             const settings = JSON.parse(event.newValue) as CorridorSettings;
-            this.notifyListeners({ type: 'SETTINGS_UPDATED', settings });
+            const syncId = `storage-cfg-${Date.now()}`;
+            this.lastProcessedSyncId = syncId;
+            this.notifyListeners({
+              type: 'SETTINGS_UPDATED',
+              settings,
+              syncId,
+            });
           } catch {
             // Ignore malformed storage payload
           }
         }
-      });
+      };
+
+      window.addEventListener('storage', this.boundStorageHandler);
     }
   }
 
@@ -73,11 +118,28 @@ export class LocalDemoDataService implements DataService {
     };
   }
 
+  public dispose() {
+    if (this.channel) {
+      try {
+        this.channel.close();
+      } catch {
+        // Ignore
+      }
+      this.channel = null;
+    }
+    if (typeof window !== 'undefined' && this.boundStorageHandler) {
+      window.removeEventListener('storage', this.boundStorageHandler);
+      this.boundStorageHandler = null;
+    }
+    this.listeners.clear();
+  }
+
   private notifyListeners(payload: SyncEventPayload) {
     this.listeners.forEach((listener) => listener(payload));
   }
 
   private broadcast(payload: SyncEventPayload) {
+    this.lastProcessedSyncId = payload.syncId;
     this.notifyListeners(payload);
     if (this.channel) {
       try {
@@ -88,17 +150,96 @@ export class LocalDemoDataService implements DataService {
     }
   }
 
+  /**
+   * Hydrates transfer records with their receipt binary/DataURL from IndexedDB
+   * or generates a clean fallback voucher if storage was cleared externally.
+   */
+  private async hydrateReceipts(transfers: TransferRequest[]): Promise<TransferRequest[]> {
+    return Promise.all(
+      transfers.map(async (item) => {
+        if (item.receiptStorageKey) {
+          const storedReceipt = await receiptStorage.getReceipt(item.receiptStorageKey);
+          if (storedReceipt) {
+            return { ...item, receiptDataUrl: storedReceipt };
+          }
+        }
+        if (item.receiptDataUrl && item.receiptDataUrl.length > 0) {
+          return item;
+        }
+        // Fallback procedural voucher if binary receipt was evicted
+        return {
+          ...item,
+          receiptDataUrl: createDemoReceiptSvgDataUrl({
+            refCode: item.id,
+            senderName: item.senderName,
+            recipientName: item.recipientName,
+            amount: formatCurrencyAmount(item.amountSent, item.originCurrency),
+            method: item.receivingMethod,
+            dateStr: item.createdAt.slice(0, 16).replace('T', ' ') + ' UTC',
+          }),
+        };
+      })
+    );
+  }
+
+  /**
+   * Persists lightweight transfer metadata to localStorage while keeping heavy receipt blobs in IndexedDB.
+   */
+  private persistTransfersMetadata(transfers: TransferRequest[]): void {
+    if (typeof window === 'undefined') return;
+
+    const lightweightList = transfers.map((item) => {
+      // If stored in IndexedDB via receiptStorageKey, omit the large base64 string from localStorage
+      if (item.receiptStorageKey) {
+        return {
+          ...item,
+          receiptDataUrl: '',
+        };
+      }
+      return item;
+    });
+
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEYS.TRANSFERS,
+        JSON.stringify(lightweightList)
+      );
+    } catch {
+      // Secondary fallback: strip all inline SVG data URLs so transfer metadata is never lost
+      try {
+        const ultraCompact = lightweightList.map((t) => ({
+          ...t,
+          receiptDataUrl: '',
+        }));
+        window.localStorage.setItem(
+          STORAGE_KEYS.TRANSFERS,
+          JSON.stringify(ultraCompact)
+        );
+      } catch {
+        throw new StorageOperationError(
+          'TRANSFER_SAVE_FAILED',
+          'Browser local storage capacity is full. Please reset demo data or clear space.'
+        );
+      }
+    }
+  }
+
   async getTransfers(): Promise<TransferRequest[]> {
     if (typeof window === 'undefined') return getSeededTransfers();
     try {
       const raw = window.localStorage.getItem(STORAGE_KEYS.TRANSFERS);
       if (!raw) {
         const seeded = getSeededTransfers();
-        window.localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(seeded));
+        this.persistTransfersMetadata(seeded);
         return seeded;
       }
       const parsed = JSON.parse(raw) as TransferRequest[];
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : getSeededTransfers();
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        const seeded = getSeededTransfers();
+        this.persistTransfersMetadata(seeded);
+        return seeded;
+      }
+      return await this.hydrateReceipts(parsed);
     } catch {
       return getSeededTransfers();
     }
@@ -117,11 +258,22 @@ export class LocalDemoDataService implements DataService {
     const existing = await this.getTransfers();
     const quote = calculateTransferQuote(input.amountSent, input.direction, settings);
 
-    const newId = generateTransferId(existing.map((t) => t.id));
     const now = new Date();
-    const tCreated = now.toISOString();
-    const tReceipt = new Date(now.getTime() + 1200).toISOString();
-    const tReview = new Date(now.getTime() + 2400).toISOString();
+    const newId = generateTransferId(
+      existing.map((t) => t.id),
+      now
+    );
+
+    // Technical Fix 8: Logical, non-future ISO 8601 timestamps
+    const nowIso = now.toISOString();
+    const receiptTimeIso =
+      input.receiptUploadedAt && input.receiptUploadedAt <= nowIso
+        ? input.receiptUploadedAt
+        : nowIso;
+
+    // Technical Fix 7: Save binary/DataURL receipt to IndexedDB vault
+    const receiptKey = `rcpt_${newId}`;
+    await receiptStorage.saveReceipt(receiptKey, input.receiptDataUrl);
 
     const newTransfer: TransferRequest = {
       id: newId,
@@ -137,45 +289,45 @@ export class LocalDemoDataService implements DataService {
       recipientName: sanitizeText(input.recipientName),
       recipientPhone: sanitizeText(input.recipientPhone),
       receivingMethod: input.receivingMethod,
+      receiptStorageKey: receiptKey,
       receiptDataUrl: input.receiptDataUrl,
       receiptFileName: sanitizeText(input.receiptFileName),
       receiptFileSize: input.receiptFileSize,
       receiptMimeType: input.receiptMimeType,
       status: 'pending',
-      createdAt: tCreated,
-      updatedAt: tReview,
+      createdAt: nowIso,
+      updatedAt: nowIso,
       timeline: [
         {
-          id: `evt-${Date.now()}-1`,
+          id: `evt-${newId}-1`,
           step: 'created',
-          timestamp: tCreated,
+          timestamp: receiptTimeIso,
           actor: 'customer',
         },
         {
-          id: `evt-${Date.now()}-2`,
+          id: `evt-${newId}-2`,
           step: 'receipt_uploaded',
-          timestamp: tReceipt,
+          timestamp: receiptTimeIso,
           actor: 'customer',
         },
         {
-          id: `evt-${Date.now()}-3`,
+          id: `evt-${newId}-3`,
           step: 'under_review',
-          timestamp: tReview,
+          timestamp: nowIso,
           actor: 'system',
         },
       ],
     };
 
     const updatedList = [newTransfer, ...existing];
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(updatedList));
-      } catch {
-        // Handle storage quota gracefully by trimming oldest receipt data if necessary
-      }
-    }
+    this.persistTransfersMetadata(updatedList);
 
-    this.broadcast({ type: 'TRANSFERS_UPDATED', transfers: updatedList });
+    this.broadcast({
+      type: 'TRANSFERS_UPDATED',
+      transfers: updatedList,
+      syncId: `create-${newId}-${now.getTime()}`,
+    });
+
     return newTransfer;
   }
 
@@ -185,7 +337,8 @@ export class LocalDemoDataService implements DataService {
     rejectionReason?: string
   ): Promise<TransferRequest> {
     const existing = await this.getTransfers();
-    const nowIso = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
     const normalizedId = id.trim().toUpperCase();
 
     let updatedRecord: TransferRequest | null = null;
@@ -193,7 +346,6 @@ export class LocalDemoDataService implements DataService {
     const updatedList = existing.map((item) => {
       if (item.id.toUpperCase() !== normalizedId) return item;
 
-      // Keep base timeline events (created, receipt_uploaded, under_review) and append the new decision
       const baseTimeline = item.timeline.filter(
         (evt) => evt.step !== 'accepted' && evt.step !== 'rejected'
       );
@@ -201,7 +353,7 @@ export class LocalDemoDataService implements DataService {
       const cleanNote = rejectionReason ? sanitizeText(rejectionReason) : undefined;
 
       const decisionEvent = {
-        id: `evt-${Date.now()}`,
+        id: `evt-${item.id}-${status}-${now.getTime()}`,
         step: status,
         timestamp: nowIso,
         actor: 'admin' as const,
@@ -220,14 +372,20 @@ export class LocalDemoDataService implements DataService {
     });
 
     if (!updatedRecord) {
-      throw new Error(`Transfer request ${id} not found.`);
+      throw new StorageOperationError(
+        'TRANSFER_SAVE_FAILED',
+        `Transfer request ${id} not found.`
+      );
     }
 
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(updatedList));
-    }
+    this.persistTransfersMetadata(updatedList);
 
-    this.broadcast({ type: 'TRANSFERS_UPDATED', transfers: updatedList });
+    this.broadcast({
+      type: 'TRANSFERS_UPDATED',
+      transfers: updatedList,
+      syncId: `status-${normalizedId}-${status}-${now.getTime()}`,
+    });
+
     return updatedRecord;
   }
 
@@ -254,18 +412,31 @@ export class LocalDemoDataService implements DataService {
 
   async updateSettings(partial: Partial<CorridorSettings>): Promise<CorridorSettings> {
     const current = await this.getSettings();
+    const now = new Date();
     const nextSettings: CorridorSettings = {
       ...current,
       ...partial,
       aiModeLabel: 'Local Simulation — No OpenAI API',
-      updatedAt: new Date().toISOString(),
+      updatedAt: now.toISOString(),
     };
 
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(nextSettings));
+      try {
+        window.localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(nextSettings));
+      } catch {
+        throw new StorageOperationError(
+          'SETTINGS_SAVE_FAILED',
+          'Settings could not be saved to browser storage.'
+        );
+      }
     }
 
-    this.broadcast({ type: 'SETTINGS_UPDATED', settings: nextSettings });
+    this.broadcast({
+      type: 'SETTINGS_UPDATED',
+      settings: nextSettings,
+      syncId: `settings-${now.getTime()}`,
+    });
+
     return nextSettings;
   }
 
@@ -284,9 +455,12 @@ export class LocalDemoDataService implements DataService {
   async saveChatHistory(messages: ChatMessage[]): Promise<void> {
     if (typeof window === 'undefined') return;
     try {
-      window.localStorage.setItem(STORAGE_KEYS.CHAT, JSON.stringify(messages.slice(-50)));
+      window.localStorage.setItem(
+        STORAGE_KEYS.CHAT,
+        JSON.stringify(messages.slice(-40))
+      );
     } catch {
-      // Ignore storage error
+      // Safe non-fatal chat history fallback
     }
   }
 
@@ -301,19 +475,27 @@ export class LocalDemoDataService implements DataService {
     transfers: TransferRequest[];
     settings: CorridorSettings;
   }> {
+    await receiptStorage.clearAllReceipts();
     const transfers = getSeededTransfers();
+    const now = new Date();
     const settings = {
       ...DEFAULT_CORRIDOR_SETTINGS,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now.toISOString(),
     };
 
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(transfers));
+      this.persistTransfersMetadata(transfers);
       window.localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
       window.localStorage.removeItem(STORAGE_KEYS.CHAT);
     }
 
-    this.broadcast({ type: 'DEMO_RESET', transfers, settings });
+    this.broadcast({
+      type: 'DEMO_RESET',
+      transfers,
+      settings,
+      syncId: `reset-${now.getTime()}`,
+    });
+
     return { transfers, settings };
   }
 }
@@ -327,32 +509,42 @@ export class FutureSupabaseDataService implements DataService {
   async getTransfers(): Promise<TransferRequest[]> {
     throw new Error('FutureSupabaseDataService is a production adapter blueprint.');
   }
-  async getTransferById(_id: string): Promise<TransferRequest | null> {
-    throw new Error('FutureSupabaseDataService is a production adapter blueprint.');
+  async getTransferById(id: string): Promise<TransferRequest | null> {
+    throw new Error(`FutureSupabaseDataService is a production adapter blueprint (${id}).`);
   }
   async createTransfer(
-    _input: CreateTransferInput,
-    _settings: CorridorSettings
+    input: CreateTransferInput,
+    settings: CorridorSettings
   ): Promise<TransferRequest> {
-    throw new Error('FutureSupabaseDataService is a production adapter blueprint.');
+    throw new Error(
+      `FutureSupabaseDataService is a production adapter blueprint (${input.direction}, ${settings.exchangeRateMruToXof}).`
+    );
   }
   async updateTransferStatus(
-    _id: string,
-    _status: 'accepted' | 'rejected',
-    _rejectionReason?: string
+    id: string,
+    status: 'accepted' | 'rejected',
+    rejectionReason?: string
   ): Promise<TransferRequest> {
-    throw new Error('FutureSupabaseDataService is a production adapter blueprint.');
+    throw new Error(
+      `FutureSupabaseDataService is a production adapter blueprint (${id}, ${status}, ${rejectionReason ?? ''}).`
+    );
   }
   async getSettings(): Promise<CorridorSettings> {
     throw new Error('FutureSupabaseDataService is a production adapter blueprint.');
   }
-  async updateSettings(_partial: Partial<CorridorSettings>): Promise<CorridorSettings> {
-    throw new Error('FutureSupabaseDataService is a production adapter blueprint.');
+  async updateSettings(partial: Partial<CorridorSettings>): Promise<CorridorSettings> {
+    throw new Error(
+      `FutureSupabaseDataService is a production adapter blueprint (${Object.keys(partial).length}).`
+    );
   }
   async getChatHistory(): Promise<ChatMessage[]> {
     return [];
   }
-  async saveChatHistory(_messages: ChatMessage[]): Promise<void> {}
+  async saveChatHistory(messages: ChatMessage[]): Promise<void> {
+    if (messages.length < 0) {
+      throw new Error('Invalid chat history.');
+    }
+  }
   async clearChatHistory(): Promise<ChatMessage[]> {
     return [];
   }

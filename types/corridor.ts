@@ -33,7 +33,7 @@ export interface TransferQuote {
   originCurrency: CurrencyCode;
   destinationCurrency: CurrencyCode;
   amountSent: number;
-  exchangeRate: number; // Always expressed as 1 MRU = X XOF in settings, or effective rate
+  exchangeRate: number; // Always expressed as 1 MRU = X XOF in settings
   effectiveRateDisplay: string;
   feeInOrigin: number;
   feeInMru: number;
@@ -59,6 +59,7 @@ export interface TransferRequest {
   recipientName: string;
   recipientPhone: string;
   receivingMethod: ReceivingMethod;
+  receiptStorageKey?: string; // IndexedDB storage reference key
   receiptDataUrl: string;
   receiptFileName: string;
   receiptFileSize: number;
@@ -115,6 +116,22 @@ export interface CreateTransferInput {
   receiptFileName: string;
   receiptFileSize: number;
   receiptMimeType: string;
+  receiptUploadedAt?: string;
+}
+
+export type StorageErrorCode =
+  | 'RECEIPT_STORAGE_FAILED'
+  | 'TRANSFER_SAVE_FAILED'
+  | 'SETTINGS_SAVE_FAILED';
+
+export class StorageOperationError extends Error {
+  public readonly code: StorageErrorCode;
+
+  constructor(code: StorageErrorCode, message: string) {
+    super(message);
+    this.name = 'StorageOperationError';
+    this.code = code;
+  }
 }
 
 export interface DataService {

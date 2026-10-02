@@ -26,7 +26,8 @@ interface DraftTransferState {
   direction: TransferDirection;
   amountSent: number;
   step: 1 | 2 | 3 | 4;
-  version: number; // Increments when external action (like Chat CTA) pushes a new draft
+  version: number;
+  syncedFromAssistant: boolean;
 }
 
 interface CorridorContextValue {
@@ -41,6 +42,8 @@ interface CorridorContextValue {
   settings: CorridorSettings;
   chatMessages: ChatMessage[];
   isHydrated: boolean;
+  storageError: string | null;
+  dismissStorageError: () => void;
   draftTransfer: DraftTransferState;
   applyQuoteToTransferFlow: (direction: TransferDirection, amountSent: number, goToStep?: 1 | 2) => void;
   trackedId: string;
@@ -71,18 +74,23 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<CorridorSettings>(() => DEFAULT_CORRIDOR_SETTINGS);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const [draftTransfer, setDraftTransfer] = useState<DraftTransferState>({
     direction: 'MRU_TO_XOF',
     amountSent: 2500,
     step: 1,
     version: 1,
+    syncedFromAssistant: false,
   });
 
   const [trackedId, setTrackedId] = useState<string>('SL-261002-A7K2');
   const [adminInspectId, setAdminInspectId] = useState<string | null>(null);
 
-  // Hydrate initial state from localStorage via dataService
+  const dict = useMemo(() => getDictionary(language), [language]);
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  // Hydrate initial state from localStorage / IndexedDB via dataService
   useEffect(() => {
     let mounted = true;
 
@@ -131,16 +139,19 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
   // Sync HTML dir and lang attributes whenever language changes
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      const dir = language === 'ar' ? 'rtl' : 'ltr';
       document.documentElement.dir = dir;
       document.documentElement.lang = language;
     }
-  }, [language]);
+  }, [dir, language]);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+      try {
+        window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+      } catch {
+        // Ignore storage error on language switch
+      }
     }
   }, []);
 
@@ -148,7 +159,11 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
     setLanguageState((prev) => {
       const next = prev === 'ar' ? 'fr' : 'ar';
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(LANG_STORAGE_KEY, next);
+        try {
+          window.localStorage.setItem(LANG_STORAGE_KEY, next);
+        } catch {
+          // Ignore
+        }
       }
       return next;
     });
@@ -168,6 +183,7 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
         amountSent,
         step: goToStep,
         version: prev.version + 1,
+        syncedFromAssistant: true,
       }));
       setActiveViewState('corridor');
       if (typeof document !== 'undefined') {
@@ -200,23 +216,44 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
 
   const createTransferRequest = useCallback(
     async (input: CreateTransferInput) => {
-      const created = await dataService.createTransfer(input, settings);
-      setTrackedId(created.id);
-      return created;
+      try {
+        setStorageError(null);
+        const created = await dataService.createTransfer(input, settings);
+        setTrackedId(created.id);
+        return created;
+      } catch (err) {
+        setStorageError(dict.errors.storageFailed);
+        throw err;
+      }
     },
-    [settings]
+    [settings, dict.errors.storageFailed]
   );
 
   const updateTransferDecision = useCallback(
     async (id: string, status: 'accepted' | 'rejected', rejectionReason?: string) => {
-      return await dataService.updateTransferStatus(id, status, rejectionReason);
+      try {
+        setStorageError(null);
+        return await dataService.updateTransferStatus(id, status, rejectionReason);
+      } catch (err) {
+        setStorageError(dict.errors.storageFailed);
+        throw err;
+      }
     },
-    []
+    [dict.errors.storageFailed]
   );
 
-  const updateCorridorSettings = useCallback(async (partial: Partial<CorridorSettings>) => {
-    return await dataService.updateSettings(partial);
-  }, []);
+  const updateCorridorSettings = useCallback(
+    async (partial: Partial<CorridorSettings>) => {
+      try {
+        setStorageError(null);
+        return await dataService.updateSettings(partial);
+      } catch (err) {
+        setStorageError(dict.errors.storageFailed);
+        throw err;
+      }
+    },
+    [dict.errors.storageFailed]
+  );
 
   const appendChatMessages = useCallback(async (newMsgs: ChatMessage[]) => {
     setChatMessages((prev) => {
@@ -232,13 +269,15 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetAllDemoData = useCallback(async () => {
+    setStorageError(null);
     await dataService.resetDemoData();
     setTrackedId('SL-261002-A7K2');
     setAdminInspectId(null);
   }, []);
 
-  const dict = useMemo(() => getDictionary(language), [language]);
-  const dir = language === 'ar' ? 'rtl' : 'ltr';
+  const dismissStorageError = useCallback(() => {
+    setStorageError(null);
+  }, []);
 
   const value = useMemo<CorridorContextValue>(
     () => ({
@@ -253,6 +292,8 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
       settings,
       chatMessages,
       isHydrated,
+      storageError,
+      dismissStorageError,
       draftTransfer,
       applyQuoteToTransferFlow,
       trackedId,
@@ -279,6 +320,8 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
       settings,
       chatMessages,
       isHydrated,
+      storageError,
+      dismissStorageError,
       draftTransfer,
       applyQuoteToTransferFlow,
       trackedId,

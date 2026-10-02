@@ -2,28 +2,30 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   Check,
   CheckCircle2,
   Compass,
-  Eye,
+  Cpu,
   RotateCcw,
   Search,
   Settings,
   ShieldCheck,
   Sliders,
   X,
-  XCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCorridor } from '@/context/corridor-context';
 import {
   AmountDisplay,
+  DecisionBar,
   ReceiptPreview,
-  RouteIndicator,
   StatusBadge,
+  TransferRoute,
   TransferTimeline,
 } from '@/components/ui/corridor-primitives';
+import { DESIGN_TOKENS } from '@/lib/design-tokens';
 import { TransferStatus } from '@/types/corridor';
 
 type FilterStatus = 'all' | TransferStatus;
@@ -48,10 +50,6 @@ export function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const selectedTransferId = adminInspectId;
-
-  // Reject confirmation state inside Drawer
-  const [isConfirmingReject, setIsConfirmingReject] = useState(false);
-  const [rejectionNote, setRejectionNote] = useState('');
   const [decisionFeedback, setDecisionFeedback] = useState<string | null>(null);
 
   // Settings form state
@@ -64,6 +62,8 @@ export function AdminDashboard() {
   );
   const [aiSimToggle, setAiSimToggle] = useState(() => settings.aiSimulationEnabled);
   const [settingsToast, setSettingsToast] = useState<string | null>(null);
+
+  const ArrowDirectional = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
   // KPI counts
   const kpis = useMemo(() => {
@@ -101,22 +101,18 @@ export function AdminDashboard() {
     );
   }, [transfers, selectedTransferId]);
 
-  const handleOpenDrawer = (id: string) => {
+  const handleOpenInspector = (id: string) => {
     setAdminInspectId(id);
-    setIsConfirmingReject(false);
-    setRejectionNote('');
     setDecisionFeedback(null);
   };
 
-  const handleCloseDrawer = () => {
+  const handleCloseInspector = () => {
     setAdminInspectId(null);
-    setIsConfirmingReject(false);
-    setRejectionNote('');
+    setDecisionFeedback(null);
   };
 
   const handleAcceptRequest = async (id: string) => {
     await updateTransferDecision(id, 'accepted');
-    setIsConfirmingReject(false);
     setDecisionFeedback(
       language === 'ar'
         ? 'تم قبول الطلب وتحديث حالة التتبع فوراً.'
@@ -124,16 +120,15 @@ export function AdminDashboard() {
     );
   };
 
-  const handleConfirmRejectRequest = async (id: string) => {
+  const handleRejectRequest = async (id: string, reason: string) => {
     await updateTransferDecision(
       id,
       'rejected',
-      rejectionNote.trim() ||
+      reason.trim() ||
         (language === 'ar'
           ? 'تم رفض الطلب بعد مراجعة بيانات الوصل.'
           : 'Demande rejetée après vérification du reçu.')
     );
-    setIsConfirmingReject(false);
     setDecisionFeedback(
       language === 'ar'
         ? 'تم رفض الطلب وتحديث شاشة تتبع العميل.'
@@ -181,150 +176,148 @@ export function AdminDashboard() {
   };
 
   return (
-    <section className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 lg:py-10 space-y-6">
-      {/* Top Operations Header & Mode Switch */}
-      <div className="bg-[#14263D] text-[#FAF8F2] p-5 sm:p-6 border border-[#10161F] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 text-xs font-mono text-[#7FAEA3]">
-            <ShieldCheck className="w-4 h-4" />
-            <span>{dict.admin.sectionLabel}</span>
+    <section className="max-w-[1360px] mx-auto px-4 sm:px-6 py-6 lg:py-10 space-y-6">
+      {/* 1. OPERATIONS HEADER & ARCHITECTURAL KPI STRIP */}
+      <div className="bg-[#10161F] text-[#FAF8F2] border border-[#14263D]">
+        {/* Top Bar */}
+        <div className="p-5 sm:p-6 border-b border-[#C9D1D0]/15 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs font-mono text-[#7FAEA3] tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-[#DE655A]" />
+              <span>{dict.admin.sectionLabel}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-[#FAF8F2] mt-1 tracking-tight">
+              {dict.admin.title}
+            </h1>
+            <p className="text-xs sm:text-sm text-[#C9D1D0] mt-1">
+              {dict.admin.subtitle}
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-[#FAF8F2] mt-1">
-            {dict.admin.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-[#C9D1D0] mt-1">
-            {dict.admin.subtitle}
-          </p>
+
+          {/* Segmented Console Mode Tabs */}
+          <div className="inline-flex bg-[#14263D] p-1 border border-[#C9D1D0]/20 self-start md:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('requests')}
+              className={`px-4 py-2 text-xs font-semibold inline-flex items-center gap-2 transition-colors min-h-[42px] whitespace-nowrap cursor-pointer ${
+                activeTab === 'requests'
+                  ? 'bg-[#FAF8F2] text-[#10161F]'
+                  : 'text-[#C9D1D0] hover:text-[#FAF8F2]'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>{dict.admin.tabs.requests}</span>
+              <span className="font-mono text-[11px] tabular-nums opacity-80">
+                ({kpis.pending})
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              className={`px-4 py-2 text-xs font-semibold inline-flex items-center gap-2 transition-colors min-h-[42px] whitespace-nowrap cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'bg-[#FAF8F2] text-[#10161F]'
+                  : 'text-[#C9D1D0] hover:text-[#FAF8F2]'
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>{dict.admin.tabs.settings}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Segmented Admin View Tabs */}
-        <div className="inline-flex bg-[#10161F] p-1 border border-[#C9D1D0]/25 self-start md:self-auto shrink-0">
+        {/* 2. ARCHITECTURAL KPI STRIP (Dividers & layout hierarchy, not floating cards) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x rtl:divide-x-reverse divide-[#C9D1D0]/15">
           <button
             type="button"
-            onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2 text-xs font-semibold inline-flex items-center gap-2 transition-colors min-h-[40px] whitespace-nowrap cursor-pointer ${
-              activeTab === 'requests'
-                ? 'bg-[#FAF8F2] text-[#10161F]'
-                : 'text-[#C9D1D0] hover:text-[#FAF8F2]'
+            onClick={() => {
+              setActiveTab('requests');
+              setStatusFilter('all');
+            }}
+            className={`p-4 sm:p-5 text-start transition-colors cursor-pointer ${
+              statusFilter === 'all' && activeTab === 'requests'
+                ? 'bg-[#14263D]'
+                : 'hover:bg-[#14263D]/50'
             }`}
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>{dict.admin.tabs.requests}</span>
-            <span className="font-mono text-[11px] tabular-nums opacity-80">
-              ({kpis.pending})
+            <span className="text-[11px] font-mono text-[#C9D1D0] uppercase block">
+              01 · {dict.admin.kpi.total}
+            </span>
+            <span className="text-2xl sm:text-4xl font-mono font-bold tabular-nums text-[#FAF8F2] mt-1 block">
+              {kpis.total}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2 text-xs font-semibold inline-flex items-center gap-2 transition-colors min-h-[40px] whitespace-nowrap cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-[#FAF8F2] text-[#10161F]'
-                : 'text-[#C9D1D0] hover:text-[#FAF8F2]'
+            onClick={() => {
+              setActiveTab('requests');
+              setStatusFilter('pending');
+            }}
+            className={`p-4 sm:p-5 text-start transition-colors cursor-pointer ${
+              statusFilter === 'pending' && activeTab === 'requests'
+                ? 'bg-[#14263D]'
+                : 'hover:bg-[#14263D]/50'
             }`}
           >
-            <Settings className="w-3.5 h-3.5" />
-            <span>{dict.admin.tabs.settings}</span>
+            <span className="text-[11px] font-mono text-[#DE655A] font-semibold uppercase block">
+              02 · {dict.admin.kpi.pending}
+            </span>
+            <span className="text-2xl sm:text-4xl font-mono font-bold tabular-nums text-[#DE655A] mt-1 block">
+              {kpis.pending}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('requests');
+              setStatusFilter('accepted');
+            }}
+            className={`p-4 sm:p-5 text-start transition-colors cursor-pointer ${
+              statusFilter === 'accepted' && activeTab === 'requests'
+                ? 'bg-[#14263D]'
+                : 'hover:bg-[#14263D]/50'
+            }`}
+          >
+            <span className="text-[11px] font-mono text-[#7FAEA3] font-semibold uppercase block">
+              03 · {dict.admin.kpi.accepted}
+            </span>
+            <span className="text-2xl sm:text-4xl font-mono font-bold tabular-nums text-[#7FAEA3] mt-1 block">
+              {kpis.accepted}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('requests');
+              setStatusFilter('rejected');
+            }}
+            className={`p-4 sm:p-5 text-start transition-colors cursor-pointer ${
+              statusFilter === 'rejected' && activeTab === 'requests'
+                ? 'bg-[#14263D]'
+                : 'hover:bg-[#14263D]/50'
+            }`}
+          >
+            <span className="text-[11px] font-mono text-[#C9D1D0] uppercase block">
+              04 · {dict.admin.kpi.rejected}
+            </span>
+            <span className="text-2xl sm:text-4xl font-mono font-bold tabular-nums text-[#FAF8F2]/80 mt-1 block">
+              {kpis.rejected}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* TAB 1: OPERATIONS QUEUE & KPI DASHBOARD */}
+      {/* TAB 1: INTEGRATED REQUEST QUEUE */}
       {activeTab === 'requests' && (
-        <div className="space-y-6">
-          {/* A. KPI Strip (Clickable to filter) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <button
-              type="button"
-              onClick={() => setStatusFilter('all')}
-              className={`p-4 text-start border transition-colors cursor-pointer ${
-                statusFilter === 'all'
-                  ? 'bg-[#14263D] text-[#FAF8F2] border-[#14263D]'
-                  : 'bg-[#FAF8F2] text-[#10161F] border-[#C9D1D0] hover:border-[#14263D]'
-              }`}
-            >
-              <span
-                className={`text-xs font-medium block ${
-                  statusFilter === 'all' ? 'text-[#C9D1D0]' : 'text-[#14263D]/70'
-                }`}
-              >
-                {dict.admin.kpi.total}
-              </span>
-              <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums mt-1 block">
-                {kpis.total}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter('pending')}
-              className={`p-4 text-start border transition-colors cursor-pointer ${
-                statusFilter === 'pending'
-                  ? 'bg-[#14263D] text-[#FAF8F2] border-[#14263D]'
-                  : 'bg-[#FAF8F2] text-[#10161F] border-[#C9D1D0] hover:border-[#14263D]'
-              }`}
-            >
-              <span
-                className={`text-xs font-medium block ${
-                  statusFilter === 'pending' ? 'text-[#C9D1D0]' : 'text-[#14263D]/70'
-                }`}
-              >
-                {dict.admin.kpi.pending}
-              </span>
-              <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums mt-1 block text-[#DE655A]">
-                {kpis.pending}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter('accepted')}
-              className={`p-4 text-start border transition-colors cursor-pointer ${
-                statusFilter === 'accepted'
-                  ? 'bg-[#14263D] text-[#FAF8F2] border-[#14263D]'
-                  : 'bg-[#FAF8F2] text-[#10161F] border-[#C9D1D0] hover:border-[#14263D]'
-              }`}
-            >
-              <span
-                className={`text-xs font-medium block ${
-                  statusFilter === 'accepted' ? 'text-[#C9D1D0]' : 'text-[#14263D]/70'
-                }`}
-              >
-                {dict.admin.kpi.accepted}
-              </span>
-              <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums mt-1 block text-[#2C6B5F]">
-                {kpis.accepted}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter('rejected')}
-              className={`p-4 text-start border transition-colors cursor-pointer ${
-                statusFilter === 'rejected'
-                  ? 'bg-[#14263D] text-[#FAF8F2] border-[#14263D]'
-                  : 'bg-[#FAF8F2] text-[#10161F] border-[#C9D1D0] hover:border-[#14263D]'
-              }`}
-            >
-              <span
-                className={`text-xs font-medium block ${
-                  statusFilter === 'rejected' ? 'text-[#C9D1D0]' : 'text-[#14263D]/70'
-                }`}
-              >
-                {dict.admin.kpi.rejected}
-              </span>
-              <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums mt-1 block">
-                {kpis.rejected}
-              </span>
-            </button>
-          </div>
-
-          {/* C & D. Search & Status Filter Bar */}
-          <div className="bg-[#FAF8F2] border border-[#C9D1D0] p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            {/* Search Input */}
+        <div className="bg-[#FAF8F2] border border-[#14263D]">
+          {/* Integrated Queue Search & Filter Bar */}
+          <div className="p-4 bg-[#F3F0E8] border-b border-[#14263D]/25 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-[#14263D]/50 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#14263D]/55 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <label htmlFor="admin-search-input" className="sr-only">
                 {dict.admin.searchPlaceholder}
               </label>
@@ -334,410 +327,487 @@ export function AdminDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={dict.admin.searchPlaceholder}
-                className="w-full bg-[#F3F0E8] border border-[#C9D1D0] ps-10 pe-4 py-2.5 text-sm text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
+                className="w-full bg-[#FAF8F2] border border-[#14263D]/30 ps-10 pe-4 py-2.5 text-sm text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
               />
             </div>
 
-            {/* Segmented Filter Controls */}
-            <div className="flex items-center gap-1 bg-[#F3F0E8] p-1 border border-[#C9D1D0] overflow-x-auto">
+            <div className="flex items-center gap-1 bg-[#FAF8F2] p-1 border border-[#14263D]/25 overflow-x-auto">
               {(
                 [
-                  ['all', dict.admin.filters.all],
-                  ['pending', dict.admin.filters.pending],
-                  ['accepted', dict.admin.filters.accepted],
-                  ['rejected', dict.admin.filters.rejected],
+                  ['all', dict.admin.filters.all, kpis.total],
+                  ['pending', dict.admin.filters.pending, kpis.pending],
+                  ['accepted', dict.admin.filters.accepted, kpis.accepted],
+                  ['rejected', dict.admin.filters.rejected, kpis.rejected],
                 ] as const
-              ).map(([key, label]) => (
+              ).map(([key, label, count]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setStatusFilter(key)}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap min-h-[36px] cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap min-h-[36px] inline-flex items-center gap-1.5 cursor-pointer ${
                     statusFilter === key
                       ? 'bg-[#14263D] text-[#FAF8F2]'
                       : 'text-[#14263D] hover:text-[#10161F]'
                   }`}
                 >
-                  {label}
+                  <span>{label}</span>
+                  <span className="font-mono text-[10px] tabular-nums opacity-75">
+                    {count}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* B. Request List (Desktop Table + Mobile Cards) */}
+          {/* Empty Queue State */}
           {filteredTransfers.length === 0 ? (
-            <div className="bg-[#FAF8F2] border border-[#C9D1D0] p-10 text-center text-sm text-[#14263D]/75">
+            <div className="p-12 text-center text-sm text-[#14263D]/75">
               {dict.admin.table.emptyState}
             </div>
           ) : (
             <>
-              {/* Desktop High-Density Data Table */}
-              <div className="hidden lg:block bg-[#FAF8F2] border border-[#C9D1D0] overflow-hidden">
+              {/* SECTION R: DESKTOP 9-COLUMN HIGH-DENSITY OPERATIONS QUEUE */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-start border-collapse">
                   <thead>
-                    <tr className="bg-[#F3F0E8] border-b border-[#C9D1D0] text-xs font-mono text-[#14263D]">
-                      <th className="py-3.5 px-4 text-start font-semibold">
+                    <tr className="bg-[#FAF8F2] border-b border-[#14263D]/20 text-[11px] font-mono text-[#14263D]/80 uppercase">
+                      <th className="py-3 px-4 text-start font-bold">
                         {dict.admin.table.id}
                       </th>
-                      <th className="py-3.5 px-4 text-start font-semibold">
-                        {dict.admin.table.parties}
+                      <th className="py-3 px-3 text-start font-bold">
+                        {dict.admin.table.route}
                       </th>
-                      <th className="py-3.5 px-4 text-start font-semibold">
-                        {dict.admin.table.amounts}
+                      <th className="py-3 px-3 text-start font-bold">
+                        {dict.admin.table.sender}
                       </th>
-                      <th className="py-3.5 px-4 text-start font-semibold">
+                      <th className="py-3 px-3 text-start font-bold">
+                        {dict.admin.table.recipient}
+                      </th>
+                      <th className="py-3 px-3 text-end font-bold">
+                        {dict.admin.table.amountSent}
+                      </th>
+                      <th className="py-3 px-3 text-end font-bold">
+                        {dict.admin.table.amountReceived}
+                      </th>
+                      <th className="py-3 px-3 text-start font-bold">
                         {dict.admin.table.method}
                       </th>
-                      <th className="py-3.5 px-4 text-start font-semibold">
-                        {dict.admin.table.date}
+                      <th className="py-3 px-3 text-start font-bold">
+                        {dict.admin.table.created}
                       </th>
-                      <th className="py-3.5 px-4 text-start font-semibold">
+                      <th className="py-3 px-4 text-end font-bold">
                         {dict.admin.table.status}
-                      </th>
-                      <th className="py-3.5 px-4 text-end font-semibold">
-                        {dict.admin.table.action}
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#C9D1D0]/70 text-sm">
-                    {filteredTransfers.map((item) => (
-                      <tr
-                        key={item.id}
-                        onClick={() => handleOpenDrawer(item.id)}
-                        className="hover:bg-[#F3F0E8]/70 transition-colors cursor-pointer"
-                      >
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#10161F] whitespace-nowrap">
-                          <span dir="ltr">{item.id}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="font-medium text-[#10161F]">
-                            {item.senderName} → {item.recipientName}
-                          </div>
-                          <div className="text-xs font-mono text-[#14263D]/65 mt-0.5">
-                            <span dir="ltr">{item.senderPhone}</span> ·{' '}
-                            <span dir="ltr">{item.recipientPhone}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
+                  <tbody className="divide-y divide-[#C9D1D0]/70 text-xs">
+                    {filteredTransfers.map((item) => {
+                      const isPending = item.status === 'pending';
+                      const isSelected = selectedTransferId === item.id;
+
+                      return (
+                        <tr
+                          key={item.id}
+                          onClick={() => handleOpenInspector(item.id)}
+                          className={`transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#14263D]/10'
+                              : isPending
+                              ? 'bg-[#F3F0E8]/45 hover:bg-[#F3F0E8]'
+                              : 'hover:bg-[#F3F0E8]/70'
+                          }`}
+                        >
+                          <td
+                            className={`py-3.5 px-4 font-mono font-bold text-[#10161F] whitespace-nowrap ${
+                              isPending ? 'border-s-4 border-[#DE655A]' : ''
+                            }`}
+                          >
+                            <span dir="ltr">{item.id}</span>
+                          </td>
+                          <td className="py-3.5 px-3 whitespace-nowrap">
+                            <TransferRoute direction={item.direction} compact />
+                          </td>
+                          <td className="py-3.5 px-3">
+                            <div className="font-semibold text-[#10161F] truncate max-w-[160px]">
+                              {item.senderName}
+                            </div>
+                            <div
+                              dir="ltr"
+                              className="text-[11px] font-mono text-[#14263D]/65"
+                            >
+                              {item.senderPhone}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-3">
+                            <div className="font-semibold text-[#10161F] truncate max-w-[160px]">
+                              {item.recipientName}
+                            </div>
+                            <div
+                              dir="ltr"
+                              className="text-[11px] font-mono text-[#14263D]/65"
+                            >
+                              {item.recipientPhone}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-3 text-end whitespace-nowrap">
                             <AmountDisplay
                               amount={item.amountSent}
                               currency={item.originCurrency}
                               size="sm"
                             />
-                            <span className="text-[#14263D]/40">→</span>
+                          </td>
+                          <td className="py-3.5 px-3 text-end whitespace-nowrap">
                             <AmountDisplay
                               amount={item.estimatedReceived}
                               currency={item.destinationCurrency}
                               size="sm"
                               highlight
                             />
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-xs font-semibold text-[#14263D]">
-                          {item.receivingMethod}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-xs tabular-nums text-[#14263D]/75 whitespace-nowrap">
-                          {formatTimestamp(item.createdAt)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={item.status} size="sm" />
-                        </td>
-                        <td className="py-3.5 px-4 text-end">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDrawer(item.id);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#14263D] hover:bg-[#10161F] text-[#FAF8F2] text-xs font-medium transition-colors whitespace-nowrap min-h-[34px] cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-[#7FAEA3]" />
-                            <span>{dict.admin.table.inspectBtn}</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3.5 px-3 font-mono font-semibold text-[#14263D] whitespace-nowrap">
+                            {item.receivingMethod}
+                          </td>
+                          <td className="py-3.5 px-3 font-mono tabular-nums text-[#14263D]/75 whitespace-nowrap">
+                            {formatTimestamp(item.createdAt)}
+                          </td>
+                          <td className="py-3.5 px-4 text-end whitespace-nowrap">
+                            <StatusBadge status={item.status} size="sm" />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
-              {/* Mobile & Tablet Touch-First Operations List */}
-              <div className="lg:hidden space-y-3">
-                {filteredTransfers.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleOpenDrawer(item.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') handleOpenDrawer(item.id);
-                    }}
-                    className="bg-[#FAF8F2] border border-[#C9D1D0] hover:border-[#14263D] p-4 space-y-3 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#C9D1D0]/60">
-                      <span
-                        dir="ltr"
-                        className="font-mono text-sm font-bold text-[#10161F] tabular-nums"
-                      >
-                        {item.id}
-                      </span>
-                      <StatusBadge status={item.status} size="sm" />
-                    </div>
+              {/* SECTION Q: MOBILE & TABLET QUEUE (375px / 390px / 430px Optimized) */}
+              <div className="lg:hidden divide-y divide-[#C9D1D0]">
+                {filteredTransfers.map((item) => {
+                  const isPending = item.status === 'pending';
 
-                    <div className="flex items-baseline justify-between gap-2">
-                      <div>
-                        <span className="text-[11px] text-[#14263D]/70 block">
-                          {dict.quote.amountSentLabel}
-                        </span>
-                        <AmountDisplay
-                          amount={item.amountSent}
-                          currency={item.originCurrency}
-                          size="md"
-                        />
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleOpenInspector(item.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ')
+                          handleOpenInspector(item.id);
+                      }}
+                      className={`p-4 space-y-2.5 transition-colors cursor-pointer ${
+                        isPending
+                          ? 'bg-[#F3F0E8]/50 border-s-4 border-[#DE655A]'
+                          : 'bg-[#FAF8F2] hover:bg-[#F3F0E8]/60'
+                      }`}
+                    >
+                      {/* Row Top: Transfer ID + Direction + Status */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            dir="ltr"
+                            className="font-mono text-sm font-bold text-[#10161F] tabular-nums"
+                          >
+                            {item.id}
+                          </span>
+                          <TransferRoute direction={item.direction} compact />
+                        </div>
+                        <StatusBadge status={item.status} size="sm" />
                       </div>
-                      <div className="text-end">
-                        <span className="text-[11px] text-[#2C6B5F] font-medium block">
-                          {dict.quote.estimatedReceivedLabel}
+
+                      {/* Row Middle: Amount Journey */}
+                      <div className="flex items-baseline justify-between gap-2 pt-1">
+                        <div className="flex items-baseline gap-2">
+                          <AmountDisplay
+                            amount={item.amountSent}
+                            currency={item.originCurrency}
+                            size="md"
+                          />
+                          <ArrowDirectional className="w-3.5 h-3.5 text-[#14263D]/50" />
+                          <AmountDisplay
+                            amount={item.estimatedReceived}
+                            currency={item.destinationCurrency}
+                            size="md"
+                            highlight
+                          />
+                        </div>
+                        <span className="font-mono text-xs font-bold text-[#14263D]">
+                          {item.receivingMethod}
                         </span>
-                        <AmountDisplay
-                          amount={item.estimatedReceived}
-                          currency={item.destinationCurrency}
-                          size="md"
-                          highlight
-                        />
+                      </div>
+
+                      {/* Row Bottom: Parties & Timestamp */}
+                      <div className="flex items-center justify-between gap-2 text-xs text-[#14263D]/75 pt-1 border-t border-[#C9D1D0]/50">
+                        <span className="truncate font-medium text-[#10161F]">
+                          {item.senderName} → {item.recipientName}
+                        </span>
+                        <span className="font-mono text-[11px] tabular-nums shrink-0">
+                          {formatTimestamp(item.createdAt)}
+                        </span>
                       </div>
                     </div>
-
-                    <div className="text-xs text-[#10161F] pt-1 flex items-center justify-between gap-2">
-                      <span className="font-medium truncate">
-                        {item.senderName} → {item.recipientName}
-                      </span>
-                      <span className="font-mono font-semibold text-[#14263D] shrink-0">
-                        {item.receivingMethod}
-                      </span>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#C9D1D0]/60 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-mono text-[#14263D]/65 tabular-nums">
-                        {formatTimestamp(item.createdAt)}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#14263D]">
-                        <Eye className="w-3.5 h-3.5 text-[#7FAEA3]" />
-                        <span>{dict.admin.table.inspectBtn}</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}
         </div>
       )}
 
-      {/* TAB 2: ADMIN SETTINGS PANEL */}
+      {/* TAB 2: SECTION T — ADMIN SETTINGS */}
       {activeTab === 'settings' && (
-        <form
-          onSubmit={handleSaveSettings}
-          className="bg-[#FAF8F2] border border-[#14263D]/25 p-5 sm:p-8 max-w-3xl space-y-6"
-        >
-          <div className="pb-4 border-b border-[#C9D1D0]">
-            <h2 className="text-xl font-semibold text-[#10161F]">
-              {dict.admin.settings.title}
-            </h2>
-            <p className="text-xs text-[#14263D]/75 mt-1">
-              {dict.admin.settings.subtitle}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <form
+            onSubmit={handleSaveSettings}
+            className="lg:col-span-8 bg-[#FAF8F2] border border-[#14263D] p-5 sm:p-8 space-y-6"
+          >
+            <div className="pb-4 border-b border-[#C9D1D0]">
+              <h2 className="text-xl font-semibold text-[#10161F]">
+                {dict.admin.settings.title}
+              </h2>
+              <p className="text-xs text-[#14263D]/80 mt-1 leading-relaxed">
+                {dict.admin.settings.subtitle}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="sm:col-span-2 bg-[#F3F0E8] border border-[#14263D]/25 p-4">
+                <label
+                  htmlFor="setting-rate"
+                  className="block text-xs font-mono font-bold text-[#10161F] uppercase mb-1"
+                >
+                  {dict.admin.settings.rateLabel}
+                </label>
+                <p className="text-xs text-[#14263D]/75 mb-2.5">
+                  {dict.admin.settings.rateHelper}
+                </p>
+                <div className="flex items-center gap-3">
+                  <span dir="ltr" className="font-mono text-sm font-bold text-[#14263D]">
+                    1 MRU =
+                  </span>
+                  <input
+                    id="setting-rate"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                    className="flex-1 bg-[#FAF8F2] border-2 border-[#14263D] px-3.5 py-2.5 text-xl font-mono font-bold tabular-nums text-[#10161F] focus:outline-none focus:border-[#DE655A] min-h-[46px]"
+                  />
+                  <span dir="ltr" className="font-mono text-sm font-bold text-[#14263D]">
+                    XOF
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="setting-fee"
+                  className="block text-xs font-semibold text-[#10161F] mb-1.5"
+                >
+                  {dict.admin.settings.feeLabel}
+                </label>
+                <input
+                  id="setting-fee"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={feeInput}
+                  onChange={(e) => setFeeInput(e.target.value)}
+                  className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="setting-min"
+                  className="block text-xs font-semibold text-[#10161F] mb-1.5"
+                >
+                  {dict.admin.settings.minLabel}
+                </label>
+                <input
+                  id="setting-min"
+                  type="number"
+                  step="10"
+                  min="1"
+                  value={minInput}
+                  onChange={(e) => setMinInput(e.target.value)}
+                  className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="setting-max"
+                  className="block text-xs font-semibold text-[#10161F] mb-1.5"
+                >
+                  {dict.admin.settings.maxLabel}
+                </label>
+                <input
+                  id="setting-max"
+                  type="number"
+                  step="100"
+                  min="100"
+                  value={maxInput}
+                  onChange={(e) => setMaxInput(e.target.value)}
+                  className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
+                />
+              </div>
+            </div>
+
+            {/* Operational Toggles */}
+            <div className="space-y-3 pt-4 border-t border-[#C9D1D0]">
+              <div className="flex items-center justify-between gap-4 p-4 bg-[#F3F0E8] border border-[#C9D1D0]">
+                <div>
+                  <span className="text-sm font-semibold text-[#10161F] block">
+                    {dict.admin.settings.acceptingLabel}
+                  </span>
+                  <span className="text-xs text-[#14263D]/75 mt-0.5 block">
+                    {acceptingToggle
+                      ? dict.admin.settings.acceptingOn
+                      : dict.admin.settings.acceptingOff}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={acceptingToggle}
+                  onClick={() => setAcceptingToggle((prev) => !prev)}
+                  className={`px-4 py-2 font-mono text-xs font-bold border transition-colors min-h-[40px] min-w-[78px] cursor-pointer ${
+                    acceptingToggle
+                      ? 'bg-[#7FAEA3] text-[#10161F] border-[#14263D]'
+                      : 'bg-[#DE655A] text-[#FAF8F2] border-[#10161F]'
+                  }`}
+                >
+                  {acceptingToggle ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 p-4 bg-[#F3F0E8] border border-[#C9D1D0]">
+                <div>
+                  <span className="text-sm font-semibold text-[#10161F] block">
+                    {dict.admin.settings.aiSimLabel}
+                  </span>
+                  <span
+                    dir="ltr"
+                    className="text-xs font-mono text-[#14263D]/80 mt-0.5 block"
+                  >
+                    {settings.aiModeLabel}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={aiSimToggle}
+                  onClick={() => setAiSimToggle((prev) => !prev)}
+                  className={`px-4 py-2 font-mono text-xs font-bold border transition-colors min-h-[40px] min-w-[78px] cursor-pointer ${
+                    aiSimToggle
+                      ? 'bg-[#7FAEA3] text-[#10161F] border-[#14263D]'
+                      : 'bg-[#C9D1D0] text-[#10161F] border-[#14263D]'
+                  }`}
+                >
+                  {aiSimToggle ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            </div>
+
+            {settingsToast && (
+              <div
+                role="status"
+                className="p-3.5 bg-[#7FAEA3]/20 border border-[#7FAEA3] text-xs font-semibold text-[#10161F] flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-[#1F5C50] shrink-0" />
+                <span>{settingsToast}</span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button
+                type="submit"
+                className="px-6 py-3.5 bg-[#14263D] hover:bg-[#10161F] text-[#FAF8F2] text-sm font-semibold inline-flex items-center gap-2 transition-colors min-h-[48px] cursor-pointer"
+              >
+                <Check className="w-4 h-4 text-[#7FAEA3]" />
+                <span>{dict.admin.settings.saveBtn}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetDemo}
+                className="px-4 py-3.5 bg-[#F3F0E8] hover:bg-[#C9D1D0]/60 text-[#10161F] border border-[#14263D]/30 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors min-h-[48px] cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-[#DE655A]" />
+                <span>{dict.admin.settings.resetDemoBtn}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Technical Architecture Status Panel */}
+          <div className="lg:col-span-4 bg-[#10161F] text-[#FAF8F2] border border-[#14263D] p-6 space-y-5">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#7FAEA3]">
+              <Cpu className="w-4 h-4" />
+              <span>ARCHITECTURE TELEMETRY</span>
+            </div>
+
+            <div className="space-y-3 border-y border-[#C9D1D0]/15 py-4 font-mono text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#C9D1D0]">AI ADAPTER</span>
+                <span className="font-bold text-[#7FAEA3]">
+                  {dict.admin.settings.aiTechStatus1}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#C9D1D0]">BILLING / API</span>
+                <span className="font-bold text-[#FAF8F2]">
+                  {dict.admin.settings.aiTechStatus2}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#C9D1D0]">RECEIPT VAULT</span>
+                <span className="font-bold text-[#7FAEA3]">INDEXEDDB + FALLBACK</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#C9D1D0]">TAB SYNC</span>
+                <span className="font-bold text-[#FAF8F2]">BROADCASTCHANNEL</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#C9D1D0]/80 leading-relaxed">
+              {dict.demoBanner.notice}
             </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label
-                htmlFor="setting-rate"
-                className="block text-xs font-semibold text-[#10161F] mb-1.5"
-              >
-                {dict.admin.settings.rateLabel}
-              </label>
-              <input
-                id="setting-rate"
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={rateInput}
-                onChange={(e) => setRateInput(e.target.value)}
-                className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="setting-fee"
-                className="block text-xs font-semibold text-[#10161F] mb-1.5"
-              >
-                {dict.admin.settings.feeLabel}
-              </label>
-              <input
-                id="setting-fee"
-                type="number"
-                step="1"
-                min="0"
-                value={feeInput}
-                onChange={(e) => setFeeInput(e.target.value)}
-                className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="setting-min"
-                className="block text-xs font-semibold text-[#10161F] mb-1.5"
-              >
-                {dict.admin.settings.minLabel}
-              </label>
-              <input
-                id="setting-min"
-                type="number"
-                step="10"
-                min="1"
-                value={minInput}
-                onChange={(e) => setMinInput(e.target.value)}
-                className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="setting-max"
-                className="block text-xs font-semibold text-[#10161F] mb-1.5"
-              >
-                {dict.admin.settings.maxLabel}
-              </label>
-              <input
-                id="setting-max"
-                type="number"
-                step="100"
-                min="100"
-                value={maxInput}
-                onChange={(e) => setMaxInput(e.target.value)}
-                className="w-full bg-[#F3F0E8] border border-[#14263D]/40 px-3.5 py-2.5 text-base font-mono font-semibold tabular-nums text-[#10161F] focus:outline-none focus:border-[#14263D] min-h-[44px]"
-              />
-            </div>
-          </div>
-
-          {/* Operational Toggles */}
-          <div className="space-y-4 pt-4 border-t border-[#C9D1D0]">
-            <div className="flex items-center justify-between gap-4 p-4 bg-[#F3F0E8] border border-[#C9D1D0]">
-              <div>
-                <span className="text-sm font-semibold text-[#10161F] block">
-                  {dict.admin.settings.acceptingLabel}
-                </span>
-                <span className="text-xs text-[#14263D]/75 mt-0.5 block">
-                  {acceptingToggle
-                    ? dict.admin.settings.acceptingOn
-                    : dict.admin.settings.acceptingOff}
-                </span>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={acceptingToggle}
-                onClick={() => setAcceptingToggle((prev) => !prev)}
-                className={`px-4 py-2 font-mono text-xs font-bold border transition-colors min-h-[40px] min-w-[76px] cursor-pointer ${
-                  acceptingToggle
-                    ? 'bg-[#7FAEA3] text-[#10161F] border-[#14263D]'
-                    : 'bg-[#DE655A] text-[#FAF8F2] border-[#10161F]'
-                }`}
-              >
-                {acceptingToggle ? 'ON' : 'OFF'}
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 p-4 bg-[#F3F0E8] border border-[#C9D1D0]">
-              <div>
-                <span className="text-sm font-semibold text-[#10161F] block">
-                  {dict.admin.settings.aiSimLabel}
-                </span>
-                <span
-                  dir="ltr"
-                  className="text-xs font-mono text-[#14263D]/80 mt-0.5 block"
-                >
-                  {settings.aiModeLabel}
-                </span>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={aiSimToggle}
-                onClick={() => setAiSimToggle((prev) => !prev)}
-                className={`px-4 py-2 font-mono text-xs font-bold border transition-colors min-h-[40px] min-w-[76px] cursor-pointer ${
-                  aiSimToggle
-                    ? 'bg-[#7FAEA3] text-[#10161F] border-[#14263D]'
-                    : 'bg-[#C9D1D0] text-[#10161F] border-[#14263D]'
-                }`}
-              >
-                {aiSimToggle ? 'ON' : 'OFF'}
-              </button>
-            </div>
-          </div>
-
-          {settingsToast && (
-            <div
-              role="status"
-              className="p-3 bg-[#7FAEA3]/20 border border-[#7FAEA3] text-xs font-medium text-[#10161F] flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4 text-[#2C6B5F] shrink-0" />
-              <span>{settingsToast}</span>
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <button
-              type="submit"
-              className="px-6 py-3 bg-[#14263D] hover:bg-[#10161F] text-[#FAF8F2] text-sm font-semibold inline-flex items-center gap-2 transition-colors min-h-[48px] cursor-pointer"
-            >
-              <Check className="w-4 h-4 text-[#7FAEA3]" />
-              <span>{dict.admin.settings.saveBtn}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleResetDemo}
-              className="px-4 py-3 bg-[#F3F0E8] hover:bg-[#C9D1D0]/60 text-[#10161F] border border-[#C9D1D0] text-xs font-medium inline-flex items-center gap-1.5 transition-colors min-h-[48px] cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-[#DE655A]" />
-              <span>{dict.admin.settings.resetDemoBtn}</span>
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
-      {/* E & F. REQUEST DETAIL DRAWER / SHEET */}
+      {/* ======================================================================
+          SECTION S & Q: PREMIUM OPERATIONAL INSPECTOR (SLIDE-OVER / MOBILE SHEET)
+          ====================================================================== */}
       <AnimatePresence>
         {selectedTransfer && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#10161F]/70 backdrop-blur-xs flex justify-end"
-            onClick={handleCloseDrawer}
+            transition={DESIGN_TOKENS.motion.fast}
+            className="fixed inset-0 z-50 bg-[#10161F]/75 backdrop-blur-xs flex justify-end"
+            onClick={handleCloseInspector}
           >
             <motion.div
               initial={{ x: dir === 'rtl' ? '-100%' : '100%' }}
               animate={{ x: 0 }}
               exit={{ x: dir === 'rtl' ? '-100%' : '100%' }}
-              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              transition={DESIGN_TOKENS.motion.spring}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl bg-[#FAF8F2] h-full overflow-y-auto flex flex-col border-s border-[#14263D]"
+              className="w-full max-w-2xl bg-[#FAF8F2] h-full flex flex-col border-s border-[#14263D] shadow-2xl"
             >
-              {/* Sticky Drawer Header */}
-              <div className="sticky top-0 z-20 bg-[#14263D] text-[#FAF8F2] px-5 py-4 flex items-center justify-between gap-4 border-b border-[#10161F]">
+              {/* 1. STICKY INSPECTOR HEADER: TRANSFER ID & STATUS */}
+              <div className="bg-[#10161F] text-[#FAF8F2] px-5 py-4 flex items-center justify-between gap-4 border-b border-[#14263D] shrink-0">
                 <div>
-                  <span className="text-[11px] font-mono text-[#7FAEA3] block">
+                  <span className="text-[10px] font-mono text-[#7FAEA3] tracking-wider block uppercase">
                     {dict.admin.drawer.title}
                   </span>
                   <span
                     dir="ltr"
-                    className="text-lg font-mono font-bold tracking-wider block tabular-nums"
+                    className="text-xl sm:text-2xl font-mono font-bold tracking-wider block tabular-nums mt-0.5"
                   >
                     {selectedTransfer.id}
                   </span>
@@ -747,8 +817,8 @@ export function AdminDashboard() {
                   <StatusBadge status={selectedTransfer.status} size="md" />
                   <button
                     type="button"
-                    onClick={handleCloseDrawer}
-                    className="p-2 bg-[#10161F] text-[#FAF8F2] hover:bg-[#DE655A] transition-colors min-h-[40px] min-w-[40px] inline-flex items-center justify-center cursor-pointer"
+                    onClick={handleCloseInspector}
+                    className="p-2 bg-[#14263D] text-[#FAF8F2] hover:bg-[#DE655A] transition-colors min-h-[40px] min-w-[40px] inline-flex items-center justify-center cursor-pointer"
                     aria-label={dict.admin.drawer.close}
                   >
                     <X className="w-4 h-4" />
@@ -756,23 +826,23 @@ export function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Drawer Body */}
-              <div className="p-5 sm:p-6 space-y-6 flex-1">
+              {/* Scrollable Operational Surface */}
+              <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto">
                 {/* Decision Feedback Banner */}
                 {decisionFeedback && (
-                  <div className="p-3.5 bg-[#7FAEA3]/20 border border-[#7FAEA3] text-xs font-semibold text-[#10161F] flex items-center justify-between gap-2">
+                  <div className="p-3.5 bg-[#7FAEA3]/25 border border-[#7FAEA3] text-xs font-semibold text-[#10161F] flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-[#2C6B5F] shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-[#1F5C50] shrink-0" />
                       <span>{decisionFeedback}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
                         const idToTrack = selectedTransfer.id;
-                        handleCloseDrawer();
+                        handleCloseInspector();
                         openTrackingForId(idToTrack);
                       }}
-                      className="px-3 py-1.5 bg-[#14263D] text-[#FAF8F2] text-xs font-medium inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      className="px-3 py-1.5 bg-[#14263D] text-[#FAF8F2] text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                     >
                       <Compass className="w-3.5 h-3.5 text-[#7FAEA3]" />
                       <span>{dict.admin.drawer.viewInTrackerBtn}</span>
@@ -780,209 +850,157 @@ export function AdminDashboard() {
                   </div>
                 )}
 
-                {/* F. LARGE CLEAR ACCEPT / REJECT OPERATIONS DECISION BOX */}
-                <div className="bg-[#F3F0E8] border-2 border-[#14263D] p-4 sm:p-5 space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-sm font-semibold text-[#10161F]">
-                        {dict.admin.drawer.decisionBox}
-                      </h3>
-                      <p className="text-xs text-[#14263D]/75 mt-0.5">
-                        {selectedTransfer.status === 'pending'
-                          ? dict.admin.drawer.decisionHint
-                          : dict.admin.drawer.alreadyDecidedNote}
-                      </p>
-                    </div>
-                  </div>
+                {/* 2. AMOUNT JOURNEY (2500 MRU -> 38,115 XOF) */}
+                <div className="space-y-2">
+                  <span className="font-mono text-[11px] font-bold text-[#14263D] uppercase tracking-wider block">
+                    {dict.admin.drawer.amountJourneyBox}
+                  </span>
 
-                  {!isConfirmingReject ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleAcceptRequest(selectedTransfer.id)}
-                        className="py-3.5 px-5 bg-[#7FAEA3] hover:bg-[#6b9e92] text-[#10161F] font-semibold text-sm inline-flex items-center justify-center gap-2 border border-[#14263D] transition-colors min-h-[48px] cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>{dict.admin.drawer.acceptBtn}</span>
-                      </button>
+                  <div className="bg-[#10161F] text-[#FAF8F2] p-5 border border-[#14263D] space-y-4">
+                    <TransferRoute
+                      direction={selectedTransfer.direction}
+                      inverted
+                      centerLabel={`1 MRU = ${selectedTransfer.exchangeRate.toFixed(2)} XOF`}
+                    />
 
-                      <button
-                        type="button"
-                        onClick={() => setIsConfirmingReject(true)}
-                        className="py-3.5 px-5 bg-[#DE655A] hover:bg-[#c85247] text-[#FAF8F2] font-semibold text-sm inline-flex items-center justify-center gap-2 border border-[#10161F] transition-colors min-h-[48px] cursor-pointer"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        <span>{dict.admin.drawer.rejectBtn}</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-[#FAF8F2] border border-[#DE655A] p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-[#8C2D25]">
-                        <AlertTriangle className="w-4 h-4 text-[#DE655A]" />
-                        <span>{dict.admin.drawer.confirmRejectTitle}</span>
-                      </div>
-
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#C9D1D0]/15 items-end">
                       <div>
-                        <label
-                          htmlFor="admin-reject-note"
-                          className="block text-xs font-medium text-[#10161F] mb-1"
-                        >
-                          {dict.admin.drawer.rejectionNoteLabel}
-                        </label>
-                        <input
-                          id="admin-reject-note"
-                          type="text"
-                          value={rejectionNote}
-                          onChange={(e) => setRejectionNote(e.target.value)}
-                          placeholder={dict.admin.drawer.rejectionNotePlaceholder}
-                          className="w-full bg-[#F3F0E8] border border-[#C9D1D0] px-3 py-2 text-xs text-[#10161F] focus:outline-none focus:border-[#DE655A] min-h-[40px]"
-                        />
-
-                        {/* Preset Rejection Notes */}
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {dict.admin.drawer.rejectionPresets.map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() => setRejectionNote(preset)}
-                              className="text-[11px] px-2 py-1 bg-[#F3F0E8] hover:bg-[#14263D] text-[#14263D] hover:text-[#FAF8F2] border border-[#C9D1D0] transition-colors cursor-pointer"
-                            >
-                              {preset}
-                            </button>
-                          ))}
+                        <span className="text-[10px] font-mono text-[#C9D1D0] uppercase block">
+                          {dict.quote.youSendTag}
+                        </span>
+                        <div className="mt-1">
+                          <AmountDisplay
+                            amount={selectedTransfer.amountSent}
+                            currency={selectedTransfer.originCurrency}
+                            size="xl"
+                            inverted
+                          />
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => handleConfirmRejectRequest(selectedTransfer.id)}
-                          className="flex-1 py-2.5 px-4 bg-[#DE655A] hover:bg-[#c85247] text-[#FAF8F2] text-xs font-semibold min-h-[42px] cursor-pointer"
-                        >
-                          {dict.admin.drawer.confirmRejectSubmit}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsConfirmingReject(false)}
-                          className="px-4 py-2.5 bg-[#F3F0E8] text-[#10161F] border border-[#C9D1D0] text-xs font-medium min-h-[42px] cursor-pointer"
-                        >
-                          {dict.admin.drawer.cancelReject}
-                        </button>
+                      <div className="sm:text-end">
+                        <span className="text-[10px] font-mono text-[#7FAEA3] font-bold uppercase block">
+                          {dict.quote.recipientGetsTag}
+                        </span>
+                        <div className="mt-1">
+                          <AmountDisplay
+                            amount={selectedTransfer.estimatedReceived}
+                            currency={selectedTransfer.destinationCurrency}
+                            size="2xl"
+                            inverted
+                            highlight
+                          />
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <RouteIndicator direction={selectedTransfer.direction} />
-
-                {/* Sender & Recipient Boxes */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-[#F3F0E8] border border-[#C9D1D0] p-4 space-y-1">
-                    <span className="text-[11px] font-mono text-[#14263D]/70 uppercase">
-                      {dict.admin.drawer.senderBox}
-                    </span>
-                    <p className="text-base font-semibold text-[#10161F]">
-                      {selectedTransfer.senderName}
-                    </p>
-                    <p dir="ltr" className="text-xs font-mono text-[#14263D]">
-                      {selectedTransfer.senderPhone}
-                    </p>
-                  </div>
-
-                  <div className="bg-[#F3F0E8] border border-[#C9D1D0] p-4 space-y-1">
-                    <span className="text-[11px] font-mono text-[#14263D]/70 uppercase">
-                      {dict.admin.drawer.recipientBox}
-                    </span>
-                    <p className="text-base font-semibold text-[#10161F]">
-                      {selectedTransfer.recipientName}
-                    </p>
-                    <p dir="ltr" className="text-xs font-mono text-[#14263D]">
-                      {selectedTransfer.recipientPhone}
-                    </p>
-                    <p className="text-xs font-mono font-bold text-[#2C6B5F] pt-1">
-                      {selectedTransfer.receivingMethod}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Financial Breakdown */}
-                <div className="bg-[#F3F0E8] border border-[#C9D1D0] p-4 space-y-3">
-                  <h4 className="text-xs font-mono font-semibold text-[#14263D] uppercase pb-2 border-b border-[#C9D1D0]">
-                    {dict.admin.drawer.financialBox}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs text-[#14263D]/70 block">
-                        {dict.quote.amountSentLabel}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#C9D1D0]/15 text-xs font-mono text-[#C9D1D0]/80">
+                      <span>
+                        {dict.quote.feeLabel}: {selectedTransfer.fee}{' '}
+                        {selectedTransfer.originCurrency}
                       </span>
-                      <AmountDisplay
-                        amount={selectedTransfer.amountSent}
-                        currency={selectedTransfer.originCurrency}
-                        size="lg"
-                      />
-                    </div>
-                    <div className="text-end">
-                      <span className="text-xs text-[#2C6B5F] font-semibold block">
-                        {dict.quote.estimatedReceivedLabel}
-                      </span>
-                      <AmountDisplay
-                        amount={selectedTransfer.estimatedReceived}
-                        currency={selectedTransfer.destinationCurrency}
-                        size="lg"
-                        highlight
-                      />
+                      <span>{formatTimestamp(selectedTransfer.createdAt)}</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#C9D1D0] text-xs font-mono text-[#14263D]/80">
-                    <span>
-                      {dict.quote.feeLabel}: {selectedTransfer.fee}{' '}
-                      {selectedTransfer.originCurrency}
-                    </span>
-                    <span>1 MRU = {selectedTransfer.exchangeRate.toFixed(2)} XOF</span>
-                    <span>{formatTimestamp(selectedTransfer.createdAt)}</span>
-                  </div>
                 </div>
 
-                {/* Receipt Image Inspection */}
+                {/* 3 & 4. PEOPLE & PAYMENT METHOD */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono font-semibold text-[#14263D] uppercase">
+                  <span className="font-mono text-[11px] font-bold text-[#14263D] uppercase tracking-wider block">
+                    {dict.admin.drawer.peopleBox}
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 border border-[#14263D]/25 bg-[#F3F0E8] divide-y sm:divide-y-0 sm:divide-x rtl:sm:divide-x-reverse divide-[#C9D1D0]">
+                    <div className="p-4 space-y-1">
+                      <span className="text-[10px] font-mono text-[#14263D]/70 uppercase block">
+                        {dict.admin.drawer.senderBox}
+                      </span>
+                      <p className="text-sm font-semibold text-[#10161F]">
+                        {selectedTransfer.senderName}
+                      </p>
+                      <p dir="ltr" className="text-xs font-mono text-[#14263D]">
+                        {selectedTransfer.senderPhone}
+                      </p>
+                    </div>
+
+                    <div className="p-4 space-y-1">
+                      <span className="text-[10px] font-mono text-[#14263D]/70 uppercase block">
+                        {dict.admin.drawer.recipientBox}
+                      </span>
+                      <p className="text-sm font-semibold text-[#10161F]">
+                        {selectedTransfer.recipientName}
+                      </p>
+                      <p dir="ltr" className="text-xs font-mono text-[#14263D]">
+                        {selectedTransfer.recipientPhone}
+                      </p>
+                    </div>
+
+                    <div className="p-4 space-y-1">
+                      <span className="text-[10px] font-mono text-[#14263D]/70 uppercase block">
+                        {dict.admin.drawer.methodBox}
+                      </span>
+                      <p className="text-sm font-mono font-bold text-[#1F5C50]">
+                        {selectedTransfer.receivingMethod}
+                      </p>
+                      <p className="text-[11px] font-mono text-[#14263D]/70">
+                        {selectedTransfer.destinationCurrency} PAYOUT
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. RECEIPT VOUCHER */}
+                <div className="space-y-2">
+                  <span className="font-mono text-[11px] font-bold text-[#14263D] uppercase tracking-wider block">
                     {dict.admin.drawer.receiptBox}
-                  </h4>
+                  </span>
                   <ReceiptPreview
                     dataUrl={selectedTransfer.receiptDataUrl}
                     fileName={selectedTransfer.receiptFileName}
                     fileSize={selectedTransfer.receiptFileSize}
+                    mimeType={selectedTransfer.receiptMimeType}
                     readonly
                   />
                 </div>
 
-                {/* Full Status Timeline */}
-                <div className="bg-[#F3F0E8]/60 border border-[#C9D1D0] p-4 space-y-4">
-                  <h4 className="text-xs font-mono font-semibold text-[#14263D] uppercase pb-2 border-b border-[#C9D1D0]">
+                {/* 6. TIMELINE */}
+                <div className="space-y-2">
+                  <span className="font-mono text-[11px] font-bold text-[#14263D] uppercase tracking-wider block">
                     {dict.tracking.timelineHeader}
-                  </h4>
-                  <TransferTimeline
-                    status={selectedTransfer.status}
-                    timeline={selectedTransfer.timeline}
-                    rejectionReason={selectedTransfer.rejectionReason}
-                  />
+                  </span>
+                  <div className="bg-[#F3F0E8]/60 border border-[#C9D1D0] p-4">
+                    <TransferTimeline
+                      status={selectedTransfer.status}
+                      timeline={selectedTransfer.timeline}
+                      rejectionReason={selectedTransfer.rejectionReason}
+                    />
+                  </div>
                 </div>
 
-                {/* Open in Customer Tracker Button */}
-                <div className="pt-2">
+                {/* Open in Customer Tracker Link */}
+                <div>
                   <button
                     type="button"
                     onClick={() => {
                       const idToTrack = selectedTransfer.id;
-                      handleCloseDrawer();
+                      handleCloseInspector();
                       openTrackingForId(idToTrack);
                     }}
-                    className="w-full py-3 px-4 bg-[#14263D] hover:bg-[#10161F] text-[#FAF8F2] text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors min-h-[44px] cursor-pointer"
+                    className="w-full py-3 px-4 bg-[#FAF8F2] hover:bg-[#14263D] text-[#14263D] hover:text-[#FAF8F2] border border-[#14263D] text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors min-h-[44px] cursor-pointer"
                   >
-                    <Compass className="w-4 h-4 text-[#7FAEA3]" />
+                    <Compass className="w-4 h-4 text-[#DE655A]" />
                     <span>{dict.admin.drawer.viewInTrackerBtn}</span>
                   </button>
                 </div>
+              </div>
+
+              {/* 7. STICKY ERGONOMIC DECISION BAR NEAR THUMB AREA */}
+              <div className="shrink-0 sticky bottom-0 z-20">
+                <DecisionBar
+                  status={selectedTransfer.status}
+                  onAccept={() => handleAcceptRequest(selectedTransfer.id)}
+                  onReject={(reason) => handleRejectRequest(selectedTransfer.id, reason)}
+                />
               </div>
             </motion.div>
           </motion.div>

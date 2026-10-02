@@ -295,12 +295,14 @@ export class FutureOpenAIService implements AIService {
   public readonly modeLabel = 'OpenAI API Adapter (Server-Side Proxy)';
 
   async processMessage(
-    _userMessage: string,
-    _language: Language,
-    _settings: CorridorSettings,
-    _existingTransfers: TransferRequest[]
+    userMessage: string,
+    language: Language,
+    settings: CorridorSettings,
+    existingTransfers: TransferRequest[]
   ): Promise<AIServiceResponse> {
-    throw new Error('FutureOpenAIService requires server-side OPENAI_API_KEY configuration.');
+    throw new Error(
+      `FutureOpenAIService requires server-side OPENAI_API_KEY configuration (lang=${language}, rate=${settings.exchangeRateMruToXof}, transfers=${existingTransfers.length}, len=${userMessage.length}).`
+    );
   }
 }
 

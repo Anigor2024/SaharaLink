@@ -67,7 +67,6 @@ export function calculateTransferQuote(
     // XOF_TO_MRU
     const originCurrency = 'XOF';
     const destinationCurrency = 'MRU';
-    // Convert fixed MRU fee & limits into XOF using the configured rate
     const feeInOrigin = Math.round(fixedFeeMru * rateMruToXof);
     const minAllowedInOrigin = Math.round(minMru * rateMruToXof);
     const maxAllowedInOrigin = Math.round(maxMru * rateMruToXof);
@@ -100,7 +99,7 @@ export function calculateTransferQuote(
       destinationCurrency,
       amountSent,
       exchangeRate: rateMruToXof,
-      effectiveRateDisplay: `100 XOF = ${(inverseRate * 100).toFixed(2)} MRU (1 MRU = ${rateMruToXof.toFixed(2)} XOF)`,
+      effectiveRateDisplay: `100 XOF = ${(inverseRate * 100).toFixed(2)} MRU`,
       feeInOrigin,
       feeInMru: fixedFeeMru,
       netConvertibleAmount,
@@ -114,23 +113,40 @@ export function calculateTransferQuote(
 }
 
 /**
- * Generates a calibrated Transfer ID in the format SL-261002-XXXX
+ * Formats a Date into YYMMDD dynamically (e.g., October 2, 2026 -> "261002")
  */
-export function generateTransferId(existingIds: string[] = []): string {
+export function formatCorridorDateSegment(date: Date = new Date()): string {
+  const yy = String(date.getFullYear()).slice(-2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yy}${mm}${dd}`;
+}
+
+/**
+ * Generates a calibrated Transfer ID dynamically in the format SL-YYMMDD-XXXX
+ * (Technical Fix 1: Never hard-codes the date segment; prevents collisions)
+ */
+export function generateTransferId(
+  existingIds: string[] = [],
+  referenceDate: Date = new Date()
+): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const existingSet = new Set(existingIds.map((id) => id.toUpperCase()));
+  const dateSegment = formatCorridorDateSegment(referenceDate);
 
-  for (let attempt = 0; attempt < 50; attempt++) {
+  for (let attempt = 0; attempt < 64; attempt++) {
     let suffix = '';
     for (let i = 0; i < 4; i++) {
       suffix += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    const candidate = `SL-261002-${suffix}`;
+    const candidate = `SL-${dateSegment}-${suffix}`;
     if (!existingSet.has(candidate)) {
       return candidate;
     }
   }
-  return `SL-261002-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+
+  const fallbackSuffix = Date.now().toString(36).slice(-4).toUpperCase().padStart(4, 'X');
+  return `SL-${dateSegment}-${fallbackSuffix}`;
 }
 
 /**
@@ -147,8 +163,19 @@ export function formatCurrencyAmount(amount: number, currency: 'MRU' | 'XOF'): s
 }
 
 /**
+ * Formats number only (without currency code) for high-hierarchy tabular displays
+ */
+export function formatTabularNumber(amount: number): string {
+  if (!Number.isFinite(amount)) return '0';
+  const isWhole = Math.abs(amount - Math.round(amount)) < 0.005;
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: isWhole ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/**
  * Generates a realistic demo receipt SVG Data URL (for seeded requests)
- * or Canvas JPG Data URL (for interactive upload testing)
  */
 export function createDemoReceiptSvgDataUrl(params: {
   refCode: string;
