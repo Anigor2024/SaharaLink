@@ -12,8 +12,18 @@ export const DEFAULT_CORRIDOR_SETTINGS: CorridorSettings = {
   updatedAt: '2026-10-02T07:00:00.000Z',
 };
 
+export const SEEDED_DEMO_IDS = new Set([
+  'SL-261002-A7K2',
+  'SL-261002-M9R4',
+  'SL-261002-C4V8',
+  'SL-261001-N3P9',
+  'SL-261001-T6H5',
+  'SL-261002-K8W1',
+  'SL-261001-B2L7',
+]);
+
 export function getSeededTransfers(): TransferRequest[] {
-  return [
+  const raw: TransferRequest[] = [
     {
       id: 'SL-261002-A7K2',
       direction: 'MRU_TO_XOF',
@@ -384,4 +394,10 @@ export function getSeededTransfers(): TransferRequest[] {
       ],
     },
   ];
+
+  return raw.map((item) => ({
+    ...item,
+    isSeededDemo: true,
+    receiptPersistenceStatus: 'persistent',
+  }));
 }

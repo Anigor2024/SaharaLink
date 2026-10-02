@@ -4,7 +4,11 @@ import {
   formatCurrencyAmount,
   generateTransferId,
 } from '@/lib/quote-engine';
-import { DEFAULT_CORRIDOR_SETTINGS, getSeededTransfers } from '@/services/demo-seed';
+import {
+  DEFAULT_CORRIDOR_SETTINGS,
+  getSeededTransfers,
+  SEEDED_DEMO_IDS,
+} from '@/services/demo-seed';
 import { receiptStorage } from '@/services/receipt-storage';
 import {
   ChatMessage,
@@ -151,46 +155,95 @@ export class LocalDemoDataService implements DataService {
   }
 
   /**
-   * Hydrates transfer records with their receipt binary/DataURL from IndexedDB
-   * or generates a clean fallback voucher if storage was cleared externally.
+   * Hydrates transfer records with their receipt binary/DataURL from IndexedDB or session memory.
+   * Never fabricates a procedural receipt for a user-created request whose uploaded receipt failed to persist.
    */
   private async hydrateReceipts(transfers: TransferRequest[]): Promise<TransferRequest[]> {
     return Promise.all(
       transfers.map(async (item) => {
+        const isSeeded =
+          item.isSeededDemo === true || SEEDED_DEMO_IDS.has(item.id.toUpperCase());
+        const sessionKey = item.receiptStorageKey || `rcpt_${item.id}`;
+
+        // 1. Try persistent IndexedDB lookup if a storage key was recorded
         if (item.receiptStorageKey) {
           const storedReceipt = await receiptStorage.getReceipt(item.receiptStorageKey);
           if (storedReceipt) {
-            return { ...item, receiptDataUrl: storedReceipt };
+            return {
+              ...item,
+              isSeededDemo: isSeeded,
+              receiptDataUrl: storedReceipt,
+              receiptPersistenceStatus: 'persistent',
+            };
           }
         }
-        if (item.receiptDataUrl && item.receiptDataUrl.length > 0) {
-          return item;
+
+        // 2. Check in-memory session cache (e.g. when IndexedDB failed during this session)
+        const sessionCached = receiptStorage.getSessionReceipt(sessionKey);
+        if (sessionCached) {
+          return {
+            ...item,
+            isSeededDemo: isSeeded,
+            receiptDataUrl: sessionCached,
+            receiptPersistenceStatus:
+              item.receiptPersistenceStatus === 'persistent'
+                ? 'persistent'
+                : 'session_only',
+          };
         }
-        // Fallback procedural voucher if binary receipt was evicted
+
+        // 3. If an in-memory dataUrl was passed directly (e.g. via live BroadcastChannel or seeded record)
+        if (item.receiptDataUrl && item.receiptDataUrl.length > 0) {
+          if (!isSeeded) {
+            receiptStorage.cacheInSession(sessionKey, item.receiptDataUrl);
+          }
+          return {
+            ...item,
+            isSeededDemo: isSeeded,
+            receiptPersistenceStatus:
+              item.receiptPersistenceStatus || (isSeeded ? 'persistent' : 'session_only'),
+          };
+        }
+
+        // 4. For seeded demo records only: regenerate the demo SVG voucher if stripped from localStorage
+        if (isSeeded) {
+          return {
+            ...item,
+            isSeededDemo: true,
+            receiptPersistenceStatus: 'persistent',
+            receiptDataUrl: createDemoReceiptSvgDataUrl({
+              refCode: item.id,
+              senderName: item.senderName,
+              recipientName: item.recipientName,
+              amount: formatCurrencyAmount(item.amountSent, item.originCurrency),
+              method: item.receivingMethod,
+              dateStr: item.createdAt.slice(0, 16).replace('T', ' ') + ' UTC',
+            }),
+          };
+        }
+
+        // 5. Newly created request whose uploaded receipt could not be recovered: mark as 'missing'
         return {
           ...item,
-          receiptDataUrl: createDemoReceiptSvgDataUrl({
-            refCode: item.id,
-            senderName: item.senderName,
-            recipientName: item.recipientName,
-            amount: formatCurrencyAmount(item.amountSent, item.originCurrency),
-            method: item.receivingMethod,
-            dateStr: item.createdAt.slice(0, 16).replace('T', ' ') + ' UTC',
-          }),
+          isSeededDemo: false,
+          receiptDataUrl: '',
+          receiptPersistenceStatus: 'missing',
         };
       })
     );
   }
 
   /**
-   * Persists lightweight transfer metadata to localStorage while keeping heavy receipt blobs in IndexedDB.
+   * Persists lightweight transfer metadata to localStorage while keeping heavy receipt blobs in IndexedDB/session.
    */
   private persistTransfersMetadata(transfers: TransferRequest[]): void {
     if (typeof window === 'undefined') return;
 
     const lightweightList = transfers.map((item) => {
-      // If stored in IndexedDB via receiptStorageKey, omit the large base64 string from localStorage
-      if (item.receiptStorageKey) {
+      const isSeeded =
+        item.isSeededDemo === true || SEEDED_DEMO_IDS.has(item.id.toUpperCase());
+      // Always strip base64 image payloads for user-created requests so transfer metadata never exceeds quota
+      if (item.receiptStorageKey || !isSeeded) {
         return {
           ...item,
           receiptDataUrl: '',
@@ -264,16 +317,19 @@ export class LocalDemoDataService implements DataService {
       now
     );
 
-    // Technical Fix 8: Logical, non-future ISO 8601 timestamps
+    // Logical, non-future ISO 8601 timestamps
     const nowIso = now.toISOString();
     const receiptTimeIso =
       input.receiptUploadedAt && input.receiptUploadedAt <= nowIso
         ? input.receiptUploadedAt
         : nowIso;
 
-    // Technical Fix 7: Save binary/DataURL receipt to IndexedDB vault
+    // Attempt to save binary/DataURL receipt to IndexedDB vault and capture boolean result
     const receiptKey = `rcpt_${newId}`;
-    await receiptStorage.saveReceipt(receiptKey, input.receiptDataUrl);
+    const receiptPersisted = await receiptStorage.saveReceipt(
+      receiptKey,
+      input.receiptDataUrl
+    );
 
     const newTransfer: TransferRequest = {
       id: newId,
@@ -289,7 +345,9 @@ export class LocalDemoDataService implements DataService {
       recipientName: sanitizeText(input.recipientName),
       recipientPhone: sanitizeText(input.recipientPhone),
       receivingMethod: input.receivingMethod,
-      receiptStorageKey: receiptKey,
+      receiptStorageKey: receiptPersisted ? receiptKey : undefined,
+      receiptPersistenceStatus: receiptPersisted ? 'persistent' : 'session_only',
+      isSeededDemo: false,
       receiptDataUrl: input.receiptDataUrl,
       receiptFileName: sanitizeText(input.receiptFileName),
       receiptFileSize: input.receiptFileSize,

@@ -61,12 +61,30 @@ export class ReceiptStorageService {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         const req = store.put(dataUrl, storageKey);
-        req.onsuccess = () => resolve(true);
+        tx.oncomplete = () => resolve(true);
         req.onerror = () => resolve(false);
+        tx.onerror = () => resolve(false);
+        tx.onabort = () => resolve(false);
       } catch {
         resolve(false);
       }
     });
+  }
+
+  /**
+   * Stores a receipt in the in-memory session cache only.
+   */
+  cacheInSession(storageKey: string, dataUrl: string): void {
+    if (dataUrl) {
+      this.memoryCache.set(storageKey, dataUrl);
+    }
+  }
+
+  /**
+   * Reads a receipt from the in-memory session cache without querying IndexedDB.
+   */
+  getSessionReceipt(storageKey: string): string | null {
+    return this.memoryCache.get(storageKey) || null;
   }
 
   /**

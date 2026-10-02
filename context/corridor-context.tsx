@@ -16,6 +16,8 @@ import {
   CorridorSettings,
   CreateTransferInput,
   Language,
+  StorageErrorCode,
+  StorageOperationError,
   TransferDirection,
   TransferRequest,
 } from '@/types/corridor';
@@ -74,7 +76,7 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<CorridorSettings>(() => DEFAULT_CORRIDOR_SETTINGS);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [storageError, setStorageError] = useState<string | null>(null);
+  const [storageErrorCode, setStorageErrorCode] = useState<StorageErrorCode | null>(null);
 
   const [draftTransfer, setDraftTransfer] = useState<DraftTransferState>({
     direction: 'MRU_TO_XOF',
@@ -89,6 +91,20 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
 
   const dict = useMemo(() => getDictionary(language), [language]);
   const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  const storageError = useMemo(() => {
+    if (!storageErrorCode) return null;
+    if (storageErrorCode === 'RECEIPT_STORAGE_FAILED') {
+      return dict.errors.receiptPersistenceWarning;
+    }
+    if (storageErrorCode === 'TRANSFER_SAVE_FAILED') {
+      return dict.errors.transferSaveFailed;
+    }
+    if (storageErrorCode === 'SETTINGS_SAVE_FAILED') {
+      return dict.errors.settingsSaveFailed;
+    }
+    return dict.errors.storageFailed;
+  }, [storageErrorCode, dict.errors]);
 
   // Hydrate initial state from localStorage / IndexedDB via dataService
   useEffect(() => {
@@ -217,42 +233,57 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
   const createTransferRequest = useCallback(
     async (input: CreateTransferInput) => {
       try {
-        setStorageError(null);
+        setStorageErrorCode(null);
         const created = await dataService.createTransfer(input, settings);
         setTrackedId(created.id);
+        if (created.receiptPersistenceStatus && created.receiptPersistenceStatus !== 'persistent') {
+          setStorageErrorCode('RECEIPT_STORAGE_FAILED');
+        }
         return created;
       } catch (err) {
-        setStorageError(dict.errors.storageFailed);
+        if (err instanceof StorageOperationError) {
+          setStorageErrorCode(err.code);
+        } else {
+          setStorageErrorCode('TRANSFER_SAVE_FAILED');
+        }
         throw err;
       }
     },
-    [settings, dict.errors.storageFailed]
+    [settings]
   );
 
   const updateTransferDecision = useCallback(
     async (id: string, status: 'accepted' | 'rejected', rejectionReason?: string) => {
       try {
-        setStorageError(null);
+        setStorageErrorCode(null);
         return await dataService.updateTransferStatus(id, status, rejectionReason);
       } catch (err) {
-        setStorageError(dict.errors.storageFailed);
+        if (err instanceof StorageOperationError) {
+          setStorageErrorCode(err.code);
+        } else {
+          setStorageErrorCode('TRANSFER_SAVE_FAILED');
+        }
         throw err;
       }
     },
-    [dict.errors.storageFailed]
+    []
   );
 
   const updateCorridorSettings = useCallback(
     async (partial: Partial<CorridorSettings>) => {
       try {
-        setStorageError(null);
+        setStorageErrorCode(null);
         return await dataService.updateSettings(partial);
       } catch (err) {
-        setStorageError(dict.errors.storageFailed);
+        if (err instanceof StorageOperationError) {
+          setStorageErrorCode(err.code);
+        } else {
+          setStorageErrorCode('SETTINGS_SAVE_FAILED');
+        }
         throw err;
       }
     },
-    [dict.errors.storageFailed]
+    []
   );
 
   const appendChatMessages = useCallback(async (newMsgs: ChatMessage[]) => {
@@ -269,14 +300,14 @@ export function CorridorProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetAllDemoData = useCallback(async () => {
-    setStorageError(null);
+    setStorageErrorCode(null);
     await dataService.resetDemoData();
     setTrackedId('SL-261002-A7K2');
     setAdminInspectId(null);
   }, []);
 
   const dismissStorageError = useCallback(() => {
-    setStorageError(null);
+    setStorageErrorCode(null);
   }, []);
 
   const value = useMemo<CorridorContextValue>(

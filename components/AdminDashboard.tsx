@@ -959,6 +959,8 @@ export function AdminDashboard() {
                     fileName={selectedTransfer.receiptFileName}
                     fileSize={selectedTransfer.receiptFileSize}
                     mimeType={selectedTransfer.receiptMimeType}
+                    persistenceStatus={selectedTransfer.receiptPersistenceStatus}
+                    isSeededDemo={selectedTransfer.isSeededDemo}
                     readonly
                   />
                 </div>

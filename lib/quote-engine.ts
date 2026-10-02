@@ -165,12 +165,12 @@ export function formatCurrencyAmount(amount: number, currency: 'MRU' | 'XOF'): s
 /**
  * Formats number only (without currency code) for high-hierarchy tabular displays
  */
-export function formatTabularNumber(amount: number): string {
+export function formatTabularNumber(amount: number, maxDecimals: number = 2): string {
   if (!Number.isFinite(amount)) return '0';
   const isWhole = Math.abs(amount - Math.round(amount)) < 0.005;
   return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: isWhole ? 0 : 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: isWhole ? 0 : Math.min(2, maxDecimals),
+    maximumFractionDigits: maxDecimals,
   }).format(amount);
 }
 

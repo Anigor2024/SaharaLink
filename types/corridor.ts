@@ -13,6 +13,8 @@ export type ReceivingMethod =
 
 export type TransferStatus = 'pending' | 'accepted' | 'rejected';
 
+export type ReceiptPersistenceStatus = 'persistent' | 'session_only' | 'missing';
+
 export type TimelineStepKey =
   | 'created'
   | 'receipt_uploaded'
@@ -60,6 +62,8 @@ export interface TransferRequest {
   recipientPhone: string;
   receivingMethod: ReceivingMethod;
   receiptStorageKey?: string; // IndexedDB storage reference key
+  receiptPersistenceStatus?: ReceiptPersistenceStatus;
+  isSeededDemo?: boolean;
   receiptDataUrl: string;
   receiptFileName: string;
   receiptFileSize: number;

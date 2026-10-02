@@ -26,6 +26,7 @@ import {
 import { formatTabularNumber } from '@/lib/quote-engine';
 import {
   CurrencyCode,
+  ReceiptPersistenceStatus,
   TimelineEvent,
   TransferDirection,
   TransferStatus,
@@ -588,13 +589,16 @@ export function TransferTimeline({
 
 /**
  * ReceiptPreview
- * Verification-style voucher display with format badge, size, lightbox zoom, replace, and remove actions.
+ * Verification-style voucher display with format badge, size, lightbox zoom, replace, remove,
+ * and safe handling for 'persistent' | 'session_only' | 'missing' receipt states.
  */
 export function ReceiptPreview({
   dataUrl,
   fileName,
   fileSize,
   mimeType,
+  persistenceStatus = 'persistent',
+  isSeededDemo = false,
   onReplace,
   onRemove,
   readonly = false,
@@ -603,6 +607,8 @@ export function ReceiptPreview({
   fileName: string;
   fileSize?: number;
   mimeType?: string;
+  persistenceStatus?: ReceiptPersistenceStatus;
+  isSeededDemo?: boolean;
   onReplace?: () => void;
   onRemove?: () => void;
   readonly?: boolean;
@@ -618,36 +624,69 @@ export function ReceiptPreview({
     ? mimeType.replace('image/', '').toUpperCase()
     : fileName.split('.').pop()?.toUpperCase() || 'IMG';
 
+  const isMissing = !dataUrl || persistenceStatus === 'missing';
+  const isSessionOnly = !isMissing && persistenceStatus === 'session_only';
+
   return (
     <>
       <div className="border border-[#14263D]/25 bg-[#FAF8F2]">
         {/* Voucher Metadata Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 bg-[#F3F0E8] border-b border-[#C9D1D0]">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 bg-[#14263D] text-[#7FAEA3] flex items-center justify-center shrink-0">
-              <FileCheck2 className="w-4 h-4" aria-hidden="true" />
+            <div
+              className={`w-7 h-7 flex items-center justify-center shrink-0 ${
+                isMissing
+                  ? 'bg-[#DE655A] text-[#FAF8F2]'
+                  : 'bg-[#14263D] text-[#7FAEA3]'
+              }`}
+            >
+              {isMissing ? (
+                <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <FileCheck2 className="w-4 h-4" aria-hidden="true" />
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-xs font-mono font-semibold text-[#10161F] truncate">
                 {fileName}
               </p>
-              <div className="flex items-center gap-2 text-[11px] font-mono tabular-nums text-[#14263D]/70">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono tabular-nums text-[#14263D]/70">
                 <span>{formatBadge}</span>
                 <span aria-hidden="true">·</span>
                 <span>{formattedSize}</span>
+                <span aria-hidden="true">·</span>
+                <span
+                  className={
+                    isMissing
+                      ? 'text-[#7A221B] font-semibold'
+                      : isSessionOnly
+                      ? 'text-[#DE655A] font-semibold'
+                      : 'text-[#1F5C50]'
+                  }
+                >
+                  {isMissing
+                    ? dict.receiptStatus.missingBadge
+                    : isSessionOnly
+                    ? dict.receiptStatus.sessionOnlyBadge
+                    : isSeededDemo
+                    ? dict.receiptStatus.demoSeeded
+                    : dict.receiptStatus.persistent}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsZoomOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#14263D] bg-[#FAF8F2] hover:bg-[#14263D] hover:text-[#FAF8F2] border border-[#14263D]/30 transition-colors whitespace-nowrap min-h-[36px] cursor-pointer"
-            >
-              <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{dict.admin.drawer.zoomReceipt}</span>
-            </button>
+            {!isMissing && (
+              <button
+                type="button"
+                onClick={() => setIsZoomOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#14263D] bg-[#FAF8F2] hover:bg-[#14263D] hover:text-[#FAF8F2] border border-[#14263D]/30 transition-colors whitespace-nowrap min-h-[36px] cursor-pointer"
+              >
+                <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{dict.admin.drawer.zoomReceipt}</span>
+              </button>
+            )}
             {!readonly && onReplace && (
               <button
                 type="button"
@@ -671,35 +710,55 @@ export function ReceiptPreview({
           </div>
         </div>
 
-        {/* Voucher Canvas Frame */}
-        <div
-          onClick={() => setIsZoomOpen(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') setIsZoomOpen(true);
-          }}
-          className="relative group cursor-pointer overflow-hidden bg-[#10161F]/5 p-3 max-h-[280px] flex items-center justify-center"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={dataUrl}
-            alt={fileName}
-            referrerPolicy="no-referrer"
-            className="max-h-[250px] w-auto object-contain mx-auto transition-transform duration-200 group-hover:scale-[1.02]"
-          />
-          <div className="absolute inset-0 bg-[#10161F]/0 group-hover:bg-[#10161F]/25 transition-colors flex items-center justify-center">
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity px-3.5 py-2 bg-[#10161F] text-[#FAF8F2] text-xs font-semibold inline-flex items-center gap-2">
-              <Eye className="w-3.5 h-3.5 text-[#7FAEA3]" />
-              <span>{dict.admin.drawer.zoomReceipt}</span>
-            </span>
+        {/* Session-Only Warning Strip */}
+        {isSessionOnly && (
+          <div className="px-3.5 py-2 bg-[#DE655A]/12 border-b border-[#DE655A]/30 flex items-center gap-2 text-xs text-[#7A221B]">
+            <AlertTriangle className="w-3.5 h-3.5 text-[#DE655A] shrink-0" />
+            <span>{dict.receiptStatus.sessionOnlyNotice}</span>
           </div>
-        </div>
+        )}
+
+        {/* Voucher Canvas Frame or Unavailable Fallback */}
+        {isMissing ? (
+          <div className="p-6 bg-[#F3F0E8]/60 text-center space-y-2">
+            <AlertTriangle className="w-6 h-6 text-[#DE655A] mx-auto" />
+            <p className="text-xs font-semibold text-[#10161F]">
+              {dict.receiptStatus.missingTitle}
+            </p>
+            <p className="text-xs text-[#14263D]/75 max-w-md mx-auto leading-relaxed">
+              {dict.receiptStatus.missingDesc}
+            </p>
+          </div>
+        ) : (
+          <div
+            onClick={() => setIsZoomOpen(true)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') setIsZoomOpen(true);
+            }}
+            className="relative group cursor-pointer overflow-hidden bg-[#10161F]/5 p-3 max-h-[280px] flex items-center justify-center"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={dataUrl}
+              alt={fileName}
+              referrerPolicy="no-referrer"
+              className="max-h-[250px] w-auto object-contain mx-auto transition-transform duration-200 group-hover:scale-[1.02]"
+            />
+            <div className="absolute inset-0 bg-[#10161F]/0 group-hover:bg-[#10161F]/25 transition-colors flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity px-3.5 py-2 bg-[#10161F] text-[#FAF8F2] text-xs font-semibold inline-flex items-center gap-2">
+                <Eye className="w-3.5 h-3.5 text-[#7FAEA3]" />
+                <span>{dict.admin.drawer.zoomReceipt}</span>
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Fullscreen Lightbox Inspection Modal */}
       <AnimatePresence>
-        {isZoomOpen && (
+        {isZoomOpen && !isMissing && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -869,21 +928,29 @@ export function DecisionBar({
  * LanguageSwitcher
  * Instant toggle between Arabic (RTL) and French (LTR).
  */
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ inverted = false }: { inverted?: boolean } = {}) {
   const { language, setLanguage } = useCorridor();
 
   return (
     <div
       role="group"
       aria-label="Language Switcher"
-      className="inline-flex items-center border border-[#14263D]/30 bg-[#F3F0E8] p-0.5"
+      className={`inline-flex items-center border p-0.5 ${
+        inverted
+          ? 'border-[#C9D1D0]/25 bg-[#14263D]/80'
+          : 'border-[#14263D]/30 bg-[#F3F0E8]'
+      }`}
     >
       <button
         type="button"
         onClick={() => setLanguage('ar')}
         className={`px-2.5 py-1 text-xs font-semibold transition-colors whitespace-nowrap min-h-[32px] cursor-pointer ${
           language === 'ar'
-            ? 'bg-[#14263D] text-[#FAF8F2]'
+            ? inverted
+              ? 'bg-[#FAF8F2] text-[#10161F]'
+              : 'bg-[#14263D] text-[#FAF8F2]'
+            : inverted
+            ? 'text-[#C9D1D0] hover:text-[#FAF8F2]'
             : 'text-[#14263D] hover:text-[#10161F]'
         }`}
       >
@@ -894,7 +961,11 @@ export function LanguageSwitcher() {
         onClick={() => setLanguage('fr')}
         className={`px-2.5 py-1 text-xs font-semibold transition-colors whitespace-nowrap min-h-[32px] cursor-pointer ${
           language === 'fr'
-            ? 'bg-[#14263D] text-[#FAF8F2]'
+            ? inverted
+              ? 'bg-[#FAF8F2] text-[#10161F]'
+              : 'bg-[#14263D] text-[#FAF8F2]'
+            : inverted
+            ? 'text-[#C9D1D0] hover:text-[#FAF8F2]'
             : 'text-[#14263D] hover:text-[#10161F]'
         }`}
       >

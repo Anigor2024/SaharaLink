@@ -426,6 +426,8 @@ export function TrackingView() {
                 fileName={currentTransfer.receiptFileName}
                 fileSize={currentTransfer.receiptFileSize}
                 mimeType={currentTransfer.receiptMimeType}
+                persistenceStatus={currentTransfer.receiptPersistenceStatus}
+                isSeededDemo={currentTransfer.isSeededDemo}
                 readonly
               />
             </div>

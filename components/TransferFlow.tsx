@@ -343,6 +343,8 @@ export function TransferFlow() {
         receiptUploadedAt,
       });
       setSubmittedRequest(created);
+    } catch {
+      // Error is surfaced through CorridorContext storageError banner
     } finally {
       setIsSubmitting(false);
     }
@@ -444,6 +446,17 @@ export function TransferFlow() {
 
         {/* Corridor Trajectory Summary */}
         <div className="p-6 sm:p-8 space-y-6 flex-1">
+          {submittedRequest.receiptPersistenceStatus &&
+            submittedRequest.receiptPersistenceStatus !== 'persistent' && (
+              <div
+                role="alert"
+                className="p-4 bg-[#DE655A]/15 border-s-4 border-[#DE655A] text-xs font-medium text-[#7A221B] flex items-start gap-2.5"
+              >
+                <AlertCircle className="w-4 h-4 text-[#DE655A] shrink-0 mt-0.5" />
+                <span>{dict.errors.receiptPersistenceWarning}</span>
+              </div>
+            )}
+
           <TransferRoute
             direction={submittedRequest.direction}
             centerLabel={`1 MRU = ${submittedRequest.exchangeRate.toFixed(2)} XOF`}

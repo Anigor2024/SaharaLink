@@ -21,19 +21,20 @@ export const TRANSLATIONS = {
       corridorLabel: 'المسار المالي: نواكشوط ↔ أبيدجان',
     },
     hero: {
-      kicker: 'المسار المالي العابر للحدود · موريتانيا ↔ ساحل العاج',
+      kicker: 'موريتانيا (MRU) ↔ ساحل العاج (XOF)',
       headlineLine1: 'حوّل بثقة.',
       headlineLine2: 'وتابع كل خطوة.',
       subtitle:
-        'تجربة تحويل واضحة بين موريتانيا وساحل العاج، من حساب المبلغ حتى مراجعة الطلب.',
-      primaryCta: 'ابدأ تجربة التحويل',
+        'من موريتانيا إلى ساحل العاج، تعرف السعر والرسوم وحالة طلبك من مكان واحد.',
+      primaryCta: 'ابدأ التحويل',
       secondaryCta: 'تتبّع طلباً',
       quickTrackPlaceholder: 'تتبّع سريع: SL-261002-A7K2',
-      instrumentHeader: 'جهاز المسار المعاير · LIVE CORRIDOR TELEMETRY',
-      instrumentActiveAmount: 'مثال مسار نشط',
-      corridorTitle: 'مسار التحويل المعاير — THE TRANSFER CORRIDOR',
+      instrumentHeader: 'THE LIVE TRANSFER CORRIDOR',
+      instrumentActiveAmount: 'تحويل مباشر معاير',
+      corridorTitle: 'مسار التحويل الحي — THE LIVE TRANSFER CORRIDOR',
       corridorSubtitle:
-        'خمس محطات مضبوطة تربط نقطة الانطلاق في نواكشوط بوجهة الاستلام في أبيدجان (أو العكس) بشفافية كاملة.',
+        'مسار مالي مضبوط يربط نواكشوط بأبيدجان عبر خمس محطات متصلة.',
+      continueTransferCta: 'متابعة التحويل',
       stages: [
         {
           number: '01',
@@ -349,8 +350,25 @@ export const TRANSLATIONS = {
         resetSuccessToast: 'تمت استعادة البيانات التجريبية والإعدادات الافتراضية.',
       },
     },
+    receiptStatus: {
+      persistent: 'محفوظ بشكل دائم (IndexedDB)',
+      demoSeeded: 'وصل عرض تجريبي مدمج',
+      sessionOnlyBadge: 'متاح خلال هذه الجلسة فقط',
+      sessionOnlyNotice:
+        'تم إنشاء الطلب، لكن تعذر حفظ صورة الوصل بشكل دائم على هذا المتصفح. قد تحتاج إلى إعادة رفعها لاحقًا.',
+      missingBadge: 'صورة الوصل غير متاحة',
+      missingTitle: 'تعذر استرجاع صورة الوصل المرفقة من هذا المتصفح',
+      missingDesc:
+        'بيانات التحويل ومعرّف الطلب محفوظة بالكامل، لكن ملف صورة الوصل لم يُحفظ بشكل دائم على هذا المتصفح.',
+    },
     errors: {
       storageFailed: 'تعذر حفظ البيانات في مساحة تخزين المتصفح. يرجى إعادة ضبط البيانات التجريبية.',
+      transferSaveFailed:
+        'تعذر حفظ بيانات طلب التحويل في متصفحك. يرجى التحقق من مساحة التخزين أو إعادة ضبط البيانات التجريبية.',
+      settingsSaveFailed:
+        'تعذر حفظ إعدادات المسار في هذا المتصفح. يرجى التحقق من إعدادات التخزين المحلية.',
+      receiptPersistenceWarning:
+        'تم إنشاء الطلب، لكن تعذر حفظ صورة الوصل بشكل دائم على هذا المتصفح. قد تحتاج إلى إعادة رفعها لاحقًا.',
     },
   },
   fr: {
@@ -373,19 +391,20 @@ export const TRANSLATIONS = {
       corridorLabel: 'Corridor Financier : Nouakchott ↔ Abidjan',
     },
     hero: {
-      kicker: 'Corridor Monétaire Transfrontalier · Mauritanie ↔ Côte d’Ivoire',
-      headlineLine1: 'Transférez en confiance.',
+      kicker: 'Mauritanie (MRU) ↔ Côte d’Ivoire (XOF)',
+      headlineLine1: 'Transférez avec confiance.',
       headlineLine2: 'Suivez chaque étape.',
       subtitle:
-        'Une expérience de transfert transparente entre la Mauritanie et la Côte d’Ivoire, du calcul initial jusqu’à la validation opérationnelle.',
+        'De la Mauritanie à la Côte d’Ivoire, visualisez le taux, les frais et l’état de votre demande au même endroit.',
       primaryCta: 'Démarrer un transfert',
       secondaryCta: 'Suivre une demande',
       quickTrackPlaceholder: 'Suivi rapide : SL-261002-A7K2',
-      instrumentHeader: 'INSTRUMENT DU CORRIDOR · LIVE TELEMETRY',
-      instrumentActiveAmount: 'Flux actif simulé',
-      corridorTitle: 'LE CORRIDOR DE TRANSFERT — ARCHITECTURE CALIBRÉE',
+      instrumentHeader: 'THE LIVE TRANSFER CORRIDOR',
+      instrumentActiveAmount: 'Flux actif calibré',
+      corridorTitle: 'LE CORRIDOR DE TRANSFERT EN DIRECT — THE LIVE TRANSFER CORRIDOR',
       corridorSubtitle:
-        'Cinq jalons contrôlés relient Nouakchott à Abidjan (et inversement) avec une traçabilité totale du taux, du reçu et de la décision.',
+        'Un corridor financier contrôlé reliant Nouakchott à Abidjan à travers cinq jalons vérifiables.',
+      continueTransferCta: 'Continuer le transfert',
       stages: [
         {
           number: '01',
@@ -701,8 +720,25 @@ export const TRANSLATIONS = {
         resetSuccessToast: 'Données et paramètres par défaut restaurés.',
       },
     },
+    receiptStatus: {
+      persistent: 'Enregistré durablement (IndexedDB)',
+      demoSeeded: 'Justificatif démo intégré',
+      sessionOnlyBadge: 'Session actuelle uniquement',
+      sessionOnlyNotice:
+        'La demande a été créée, mais le reçu n’a pas pu être enregistré durablement dans ce navigateur. Il pourra être nécessaire de le téléverser à nouveau.',
+      missingBadge: 'Reçu indisponible',
+      missingTitle: 'L’image du reçu n’est pas disponible dans le stockage de ce navigateur',
+      missingDesc:
+        'Les données de la demande et le Transfer ID sont conservés, mais le fichier du reçu n’a pas pu être enregistré durablement.',
+    },
     errors: {
       storageFailed: 'Impossible de sauvegarder dans le navigateur. Veuillez réinitialiser les données démo.',
+      transferSaveFailed:
+        'Impossible d’enregistrer les métadonnées de la demande dans ce navigateur. Veuillez réinitialiser les données démo.',
+      settingsSaveFailed:
+        'Impossible d’enregistrer les paramètres du corridor dans ce navigateur.',
+      receiptPersistenceWarning:
+        'La demande a été créée, mais le reçu n’a pas pu être enregistré durablement dans ce navigateur. Il pourra être nécessaire de le téléverser à nouveau.',
     },
   },
 } as const;
