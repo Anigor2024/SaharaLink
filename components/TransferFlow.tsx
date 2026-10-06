@@ -599,7 +599,7 @@ export function TransferFlow() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
             {corridorStages.map((stg) => {
               const isCurrent = step === stg.num;
               const isCompleted = step > stg.num;
@@ -621,19 +621,19 @@ export function TransferFlow() {
                     )
                       navigateToStep(4);
                   }}
-                  className={`text-start px-3 py-2 border transition-colors min-h-[46px] flex flex-col justify-between cursor-pointer ${
+                  className={`text-start py-2 px-1 transition-colors border-b-2 flex flex-col justify-between cursor-pointer ${
                     isCurrent
-                      ? 'bg-[#14263D] text-[#FAF8F2] border-[#14263D]'
+                      ? 'border-[#14263D] text-[#10161F]'
                       : isCompleted
-                      ? 'bg-[#FAF8F2] text-[#10161F] border-[#7FAEA3]'
-                      : 'bg-[#FAF8F2]/60 text-[#14263D]/55 border-[#C9D1D0]'
+                      ? 'border-[#7FAEA3] text-[#1F5C50]'
+                      : 'border-transparent text-[#14263D]/45 hover:text-[#14263D]/70'
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
                     <span
-                      className={`font-mono text-[10px] font-bold tracking-wider ${
+                      className={`font-mono text-[11px] font-bold tracking-wider ${
                         isCurrent
-                          ? 'text-[#7FAEA3]'
+                          ? 'text-[#DE655A]'
                           : isCompleted
                           ? 'text-[#1F5C50]'
                           : 'text-[#14263D]/50'
@@ -645,7 +645,7 @@ export function TransferFlow() {
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#1F5C50] shrink-0" />
                     )}
                   </div>
-                  <span className="text-xs font-semibold truncate mt-0.5 block">
+                  <span className="text-xs font-medium truncate mt-0.5 block">
                     {stg.label}
                   </span>
                 </button>

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ArrowLeftRight,
   Compass,
-  Cpu,
   ShieldAlert,
   ShieldCheck,
   X,
@@ -18,7 +17,6 @@ export function Navigation() {
     activeView,
     setActiveView,
     transfers,
-    settings,
     storageError,
     dismissStorageError,
     resetAllDemoData,
@@ -29,7 +27,7 @@ export function Navigation() {
   useEffect(() => {
     const onScroll = () => {
       if (typeof window === 'undefined') return;
-      setIsScrolled(window.scrollY > 24);
+      setIsScrolled(window.scrollY > 20);
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -41,17 +39,17 @@ export function Navigation() {
 
   return (
     <>
-      {/* Single Primary Navigation Layer — Overlays Hero at Top, Compact Solid After Scroll */}
+      {/* Clean Consumer Financial Navigation Bar */}
       <header
         className={`${
           isHeroOverlay ? 'fixed top-0 inset-x-0' : 'sticky top-0'
         } z-40 w-full transition-colors duration-200 ${
           isHeroOverlay && !isScrolled
-            ? 'bg-[#10161F]/40 backdrop-blur-xs border-b border-[#FAF8F2]/10'
+            ? 'bg-[#10161F]/60 backdrop-blur-md border-b border-[#FAF8F2]/10'
             : 'bg-[#10161F]/95 backdrop-blur-md border-b border-[#14263D]'
         }`}
       >
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-6">
           {/* Zone 1: Brand Mark + Quiet Prototype Micro-Disclosure */}
           <div className="flex items-center gap-3.5 min-w-0">
             <button
@@ -67,22 +65,9 @@ export function Navigation() {
               className="hidden sm:inline-block h-3.5 w-[1px] bg-[#C9D1D0]/20 shrink-0"
             />
 
-            <div
-              role="note"
-              title={dict.demoBanner.notice}
-              className="inline-flex items-center gap-1.5 text-[11px] text-[#C9D1D0]/75 min-w-0"
-            >
-              <span
-                className="w-1.5 h-1.5 bg-[#DE655A] shrink-0"
-                aria-hidden="true"
-              />
-              <span className="hidden xl:inline truncate">
-                {dict.demoBanner.notice}
-              </span>
-              <span className="xl:hidden font-mono text-[10px] tracking-wider uppercase text-[#C9D1D0]/80 truncate">
-                {dict.demoBanner.notice}
-              </span>
-            </div>
+            <span className="hidden sm:inline-block font-mono text-[10px] tracking-wider uppercase text-[#C9D1D0]/60 truncate">
+              {dict.demoBanner.notice.split('—')[0] || 'تجريبي · PROTOTYPE'}
+            </span>
           </div>
 
           {/* Zone 2: Clean Typographic Navigation Links (Desktop) */}
@@ -150,28 +135,13 @@ export function Navigation() {
             </button>
           </nav>
 
-          {/* Zone 3: Subtle AI Simulation Status + Language Switch */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveView('admin')}
-              title={settings.aiModeLabel}
-              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono text-[#C9D1D0]/85 border border-[#C9D1D0]/20 bg-[#14263D]/60 hover:bg-[#14263D] hover:text-[#FAF8F2] transition-colors whitespace-nowrap min-h-[32px] cursor-pointer"
-            >
-              <Cpu
-                className={`w-3.5 h-3.5 ${
-                  settings.aiSimulationEnabled ? 'text-[#7FAEA3]' : 'text-[#DE655A]'
-                }`}
-                aria-hidden="true"
-              />
-              <span>{dict.demoBanner.aiSimTag}</span>
-            </button>
-
+          {/* Zone 3: Clean Language Switcher (No competing technical widgets) */}
+          <div className="flex items-center gap-3 shrink-0">
             <LanguageSwitcher inverted />
           </div>
         </div>
 
-        {/* Storage Error / Receipt Persistence Alert Bar (Shown only when an error or persistence warning occurs) */}
+        {/* Storage Error / Receipt Persistence Alert Bar (Shown only when an error occurs) */}
         {storageError && (
           <div
             role="alert"
@@ -213,9 +183,9 @@ export function Navigation() {
           <button
             type="button"
             onClick={() => setActiveView('corridor')}
-            className={`flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors cursor-pointer ${
+            className={`flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors ${
               activeView === 'corridor'
-                ? 'text-[#FAF8F2] bg-[#14263D]/80 font-semibold border-t-2 border-[#DE655A]'
+                ? 'text-[#FAF8F2] bg-[#14263D]/60 font-semibold border-t-2 border-[#DE655A]'
                 : 'text-[#C9D1D0]/70 hover:text-[#FAF8F2]'
             }`}
           >
@@ -226,9 +196,9 @@ export function Navigation() {
           <button
             type="button"
             onClick={() => setActiveView('track')}
-            className={`flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors cursor-pointer ${
+            className={`flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors ${
               activeView === 'track'
-                ? 'text-[#FAF8F2] bg-[#14263D]/80 font-semibold border-t-2 border-[#DE655A]'
+                ? 'text-[#FAF8F2] bg-[#14263D]/60 font-semibold border-t-2 border-[#DE655A]'
                 : 'text-[#C9D1D0]/70 hover:text-[#FAF8F2]'
             }`}
           >
@@ -239,9 +209,9 @@ export function Navigation() {
           <button
             type="button"
             onClick={() => setActiveView('admin')}
-            className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors ${
               activeView === 'admin'
-                ? 'text-[#FAF8F2] bg-[#14263D]/80 font-semibold border-t-2 border-[#DE655A]'
+                ? 'text-[#FAF8F2] bg-[#14263D]/60 font-semibold border-t-2 border-[#DE655A]'
                 : 'text-[#C9D1D0]/70 hover:text-[#FAF8F2]'
             }`}
           >
