@@ -1,6 +1,6 @@
 {
   "name": "SaharaLink — The Transfer Corridor",
-  "description": "منصة تجريبية لطلبات التحويل المالي العابر للحدود بين موريتانيا وساحل العاج (MRU ↔ XOF) مع مساعد ذكي محلي، تتبع فوري، ولوحة عمليات للإدارة.",
+  "description": "منصة طلبات التحويل المالي العابر للحدود بين موريتانيا وساحل العاج (MRU ↔ XOF) مع تسعير فوري، تتبع مسار مباشر، ولوحة عمليات للإدارة.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

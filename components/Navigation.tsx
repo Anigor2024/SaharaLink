@@ -50,7 +50,7 @@ export function Navigation() {
         }`}
       >
         <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-6">
-          {/* Zone 1: Brand Mark + Quiet Prototype Micro-Disclosure */}
+          {/* Zone 1: Brand Mark */}
           <div className="flex items-center gap-3.5 min-w-0">
             <button
               type="button"
@@ -59,15 +59,6 @@ export function Navigation() {
             >
               <BrandMark inverted />
             </button>
-
-            <span
-              aria-hidden="true"
-              className="hidden sm:inline-block h-3.5 w-[1px] bg-[#C9D1D0]/20 shrink-0"
-            />
-
-            <span className="hidden sm:inline-block font-mono text-[10px] tracking-wider uppercase text-[#C9D1D0]/60 truncate">
-              {dict.demoBanner.notice.split('—')[0] || 'تجريبي · PROTOTYPE'}
-            </span>
           </div>
 
           {/* Zone 2: Clean Typographic Navigation Links (Desktop) */}

@@ -23,7 +23,7 @@ import {
   DESIGN_TOKENS,
   getOriginAndDestination,
 } from '@/lib/design-tokens';
-import { formatTabularNumber } from '@/lib/quote-engine';
+import { formatTabularNumber, ensureEnglishNumerals } from '@/lib/quote-engine';
 import {
   CurrencyCode,
   ReceiptPersistenceStatus,
@@ -77,7 +77,7 @@ export function DemoBanner() {
     useCorridor();
 
   return (
-    <div role="region" aria-label="Prototype Disclosure" className="w-full">
+    <div role="region" aria-label="Corridor Operational Notice" className="w-full">
       <div className="w-full bg-[#10161F] text-[#F3F0E8] border-b border-[#14263D] px-4 sm:px-6 py-1.5 text-xs">
         <div className="max-w-[1360px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 min-w-0">
@@ -412,13 +412,14 @@ export function TransferTimeline({
     if (!iso) return null;
     try {
       const date = new Date(iso);
-      return new Intl.DateTimeFormat(language === 'ar' ? 'ar-MR' : 'fr-FR', {
+      const formatted = new Intl.DateTimeFormat(language === 'ar' ? 'ar-u-nu-latn' : 'fr-FR', {
         month: 'short',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'UTC',
       }).format(date);
+      return ensureEnglishNumerals(formatted);
     } catch {
       return iso;
     }

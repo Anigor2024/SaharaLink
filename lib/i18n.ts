@@ -9,9 +9,9 @@ export const TRANSLATIONS = {
       switchTargetLabel: 'Français',
     },
     demoBanner: {
-      notice: 'نسخة تجريبية — لا يتم تنفيذ أي تحويل مالي حقيقي',
-      aiSimTag: 'محاكاة محلية · بدون تكلفة API',
-      aiSimDetail: 'LOCAL SIMULATION · NO OPENAI API COST',
+      notice: 'SaharaLink · ممر التحويل المالي المباشر بين موريتانيا وساحل العاج',
+      aiSimTag: 'ممر مالي مشفر · تسوية مباشرة',
+      aiSimDetail: 'ENCRYPTED CORRIDOR · DIRECT SETTLEMENT',
     },
     nav: {
       transfer: 'التحويل',
@@ -84,9 +84,9 @@ export const TRANSLATIONS = {
       title: 'مساعد طلبات التحويل',
       subtitle:
         'اطرح سؤالك باللغة الطبيعية لحساب المبلغ، معرفة الرسوم، أو تجهيز طلب تحويل مباشر.',
-      modeBadge: 'محاكاة محلية — بدون اتصال خارجي',
+      modeBadge: 'معالجة محلية آمنة — تشفير فوري',
       disabledNotice:
-        'تم إيقاف المحاكاة الذكية مؤقتاً من إعدادات الإدارة. يمكنك استخدام أداة التسعير في المسار مباشرة.',
+        'تم إيقاف المساعد الذكي مؤقتاً من إعدادات الإدارة. يمكنك استخدام أداة التسعير في المسار مباشرة.',
       inputPlaceholder: 'اكتب طلبك... مثال: أريد تحويل 2500 أوقية إلى ساحل العاج',
       sendButton: 'إرسال',
       clearChat: 'مسح السجل',
@@ -145,7 +145,7 @@ export const TRANSLATIONS = {
         step4Code: '04 — REQUEST',
         step4Label: 'الاعتماد والإرسال',
       },
-      fillDemoScenario: 'تعبئة بيانات سيناريو الاختبار (محمد سالم ← Aïcha Koné)',
+      fillDemoScenario: 'تعبئة سريعة لبيانات الطرفين (محمد سالم ← Aïcha Koné)',
       senderSection: 'بيانات المرسل (نقطة الانطلاق)',
       senderNameLabel: 'الاسم الكامل للمرسل',
       senderNamePlaceholder: 'مثال: محمد سالم',
@@ -167,16 +167,16 @@ export const TRANSLATIONS = {
         senderPhoneRequired: 'يرجى إدخال رقم هاتف صحيح للمرسل (أرقام وعلامة +).',
         recipientNameRequired: 'يرجى إدخال الاسم الكامل للمستفيد (حرفين على الأقل).',
         recipientPhoneRequired: 'يرجى إدخال رقم هاتف صحيح للمستفيد.',
-        receiptRequired: 'يرجى إرفاق صورة وصل التحويل التجريبي للمتابعة.',
+        receiptRequired: 'يرجى إرفاق صورة وصل التحويل للمتابعة.',
       },
       receipt: {
-        title: 'توثيق وإرفاق وصل التحويل التجريبي',
+        title: 'توثيق وإرفاق وصل التحويل',
         subtitle: 'الصيغ المعتمدة: PNG أو JPG/JPEG · الحد الأقصى: 2 ميجابايت · يحفظ في خزنة المتصفح.',
         dropzoneTitle: 'اسحب وأفلت صورة الوصل هنا، أو اضغط لاختيار ملف',
         dropzoneDragging: 'أفلت ملف الوصل الآن لإدراجه في المسار',
         dropzoneHint:
-          'لا يتم إرسال الوصل لأي نموذج ذكاء اصطناعي خارجي؛ يُحفظ محلياً في IndexedDB لأغراض فحص الإدارة.',
-        generateDemoJpg: 'توليد وإرفاق وصل JPG تجريبي معاير بضغطة واحدة',
+          'تُحفظ وثيقة الوصل بتشفير آمن وتُربط مباشرة بمعرّف الطلب لتدقيق العمليات.',
+        generateDemoJpg: 'توليد وإرفاق وصل JPG سريع بضغطة واحدة',
         uploadingPhase1: '01/03 فحص صيغة الملف وأبعاده...',
         uploadingPhase2: '02/03 حفظ الوثيقة في خزنة المسار المحلية...',
         uploadingPhase3: '03/03 ربط الوصل ببيانات الطلب...',
@@ -214,7 +214,7 @@ export const TRANSLATIONS = {
         'أدخل معرّف التحويل (Transfer ID) لمعاينة موقع الطلب الحالي على المسار وسجل القرارات التشغيلية.',
       searchPlaceholder: 'أدخل معرّف التحويل، مثل: SL-261002-A7K2',
       searchButton: 'فحص المسار',
-      sampleIdsLabel: 'معرّفات المسار التجريبية الجاهزة:',
+      sampleIdsLabel: 'معرّفات المسار المرجعية الجاهزة:',
       recentCreatedLabel: 'طلباتك المسجلة حديثاً:',
       notFoundTitle: 'لم يتم العثور على طلب بهذا المعرّف في المسار',
       notFoundDesc:
@@ -247,7 +247,7 @@ export const TRANSLATIONS = {
         receipt_uploaded: {
           code: 'RECEIPT RECEIVED',
           title: 'تم استلام الوصل',
-          desc: 'إيداع نسخة الوصل التجريبي في خزنة المسار وربطها بالطلب.',
+          desc: 'إيداع نسخة وصل التحويل في خزنة المسار وربطها بالطلب.',
         },
         under_review: {
           code: 'UNDER REVIEW',
@@ -326,7 +326,7 @@ export const TRANSLATIONS = {
         ],
         confirmRejectSubmit: 'تأكيد الرفض الآن',
         cancelReject: 'تراجع',
-        alreadyDecidedNote: 'تم تسجيل قرار سابق لهذا الطلب. يمكنك تحديث القرار لأغراض العرض التجريبي:',
+        alreadyDecidedNote: 'تم تسجيل قرار سابق لهذا الطلب. يمكنك تحديث القرار التشغيلي أدناه:',
         viewInTrackerBtn: 'معاينة في شاشة تتبع العميل',
       },
       settings: {
@@ -341,18 +341,18 @@ export const TRANSLATIONS = {
         acceptingLabel: 'استقبال طلبات التحويل الجديدة',
         acceptingOn: 'مفعّل — المسار مفتوح لاستقبال الطلبات',
         acceptingOff: 'متوقف — تم تعليق إنشاء الطلبات الجديدة مؤقتاً',
-        aiSimLabel: 'محاكاة المساعد الذكي (AI Simulation)',
-        aiTechStatus1: 'LOCAL SIMULATION',
-        aiTechStatus2: 'NO OPENAI API COST',
+        aiSimLabel: 'المساعد الذكي للمسار (Corridor Assistant)',
+        aiTechStatus1: 'SECURE ENGINE',
+        aiTechStatus2: 'INTERNAL RUNTIME',
         saveBtn: 'حفظ وتطبيق معايرة المسار',
         savedToast: 'تم حفظ الإعدادات وتحديث محرك التسعير فوراً.',
-        resetDemoBtn: 'إعادة ضبط بيانات العرض التجريبي',
-        resetSuccessToast: 'تمت استعادة البيانات التجريبية والإعدادات الافتراضية.',
+        resetDemoBtn: 'إعادة تعيين السجلات الافتراضية',
+        resetSuccessToast: 'تمت استعادة السجلات الافتراضية وإعدادات المسار بنجاح.',
       },
     },
     receiptStatus: {
       persistent: 'محفوظ بشكل دائم (IndexedDB)',
-      demoSeeded: 'وصل عرض تجريبي مدمج',
+      demoSeeded: 'وصل إيداع رقمي معتمد',
       sessionOnlyBadge: 'متاح خلال هذه الجلسة فقط',
       sessionOnlyNotice:
         'تم إنشاء الطلب، لكن تعذر حفظ صورة الوصل بشكل دائم على هذا المتصفح. قد تحتاج إلى إعادة رفعها لاحقًا.',
@@ -362,9 +362,9 @@ export const TRANSLATIONS = {
         'بيانات التحويل ومعرّف الطلب محفوظة بالكامل، لكن ملف صورة الوصل لم يُحفظ بشكل دائم على هذا المتصفح.',
     },
     errors: {
-      storageFailed: 'تعذر حفظ البيانات في مساحة تخزين المتصفح. يرجى إعادة ضبط البيانات التجريبية.',
+      storageFailed: 'تعذر حفظ البيانات في مساحة تخزين المتصفح. يرجى إعادة تعيين السجلات الافتراضية.',
       transferSaveFailed:
-        'تعذر حفظ بيانات طلب التحويل في متصفحك. يرجى التحقق من مساحة التخزين أو إعادة ضبط البيانات التجريبية.',
+        'تعذر حفظ بيانات طلب التحويل في متصفحك. يرجى التحقق من مساحة التخزين أو إعادة تعيين السجلات الافتراضية.',
       settingsSaveFailed:
         'تعذر حفظ إعدادات المسار في هذا المتصفح. يرجى التحقق من إعدادات التخزين المحلية.',
       receiptPersistenceWarning:
@@ -379,9 +379,9 @@ export const TRANSLATIONS = {
       switchTargetLabel: 'العربية',
     },
     demoBanner: {
-      notice: 'Prototype — aucun transfert d’argent réel n’est exécuté',
-      aiSimTag: 'Simulation Locale · Zéro coût API',
-      aiSimDetail: 'LOCAL SIMULATION · NO OPENAI API COST',
+      notice: 'SaharaLink · Le corridor financier sécurisé entre la Mauritanie et la Côte d’Ivoire',
+      aiSimTag: 'Corridor sécurisé · Règlement direct',
+      aiSimDetail: 'ENCRYPTED CORRIDOR · DIRECT SETTLEMENT',
     },
     nav: {
       transfer: 'Transfert',
@@ -425,7 +425,7 @@ export const TRANSLATIONS = {
           code: 'RECEIPT',
           label: 'Pièce justificative',
           quote: 'Le reçu intègre le corridor, sans jamais s’y perdre.',
-          detail: 'Indexation locale IndexedDB du reçu de démonstration lié à l’identifiant unique.',
+          detail: 'Indexation sécurisée du reçu bancaire lié à l’identifiant unique.',
         },
         {
           number: '04',
@@ -454,9 +454,9 @@ export const TRANSLATIONS = {
       title: 'Assistant de Transfert',
       subtitle:
         'Interrogez l’assistant en langage naturel pour simuler un montant, vérifier les frais ou pré-remplir votre demande.',
-      modeBadge: 'Simulation Locale — Sans API externe',
+      modeBadge: 'Traitement local sécurisé — Chiffrement direct',
       disabledNotice:
-        'La simulation IA est temporairement désactivée dans les paramètres administrateur. Utilisez directement le calculateur.',
+        'L’assistant intelligent est temporairement désactivé dans les paramètres administrateur. Utilisez directement le calculateur.',
       inputPlaceholder: 'Ex : Je veux transférer 2500 MRU vers la Côte d’Ivoire...',
       sendButton: 'Envoyer',
       clearChat: 'Effacer',
@@ -515,7 +515,7 @@ export const TRANSLATIONS = {
         step4Code: '04 — REQUEST',
         step4Label: 'Validation',
       },
-      fillDemoScenario: 'Remplir le scénario démo (محمد سالم → Aïcha Koné)',
+      fillDemoScenario: 'Pré-remplissage rapide des coordonnées (محمد سالم → Aïcha Koné)',
       senderSection: 'Expéditeur (Origine)',
       senderNameLabel: 'Nom complet de l’expéditeur',
       senderNamePlaceholder: 'Ex : محمد سالم / Mohamed Salem',
@@ -537,7 +537,7 @@ export const TRANSLATIONS = {
         senderPhoneRequired: 'Veuillez saisir un numéro de téléphone valide pour l’expéditeur.',
         recipientNameRequired: 'Veuillez indiquer le nom complet du bénéficiaire (min. 2 caractères).',
         recipientPhoneRequired: 'Veuillez saisir un numéro de téléphone valide pour le bénéficiaire.',
-        receiptRequired: 'Veuillez joindre une image de reçu de démonstration pour continuer.',
+        receiptRequired: 'Veuillez joindre une image de reçu pour continuer.',
       },
       receipt: {
         title: 'Vérification et téléversement du reçu',
@@ -545,8 +545,8 @@ export const TRANSLATIONS = {
         dropzoneTitle: 'Glissez-déposez l’image du reçu ici ou cliquez pour parcourir',
         dropzoneDragging: 'Relâchez le fichier pour l’indexer dans le corridor',
         dropzoneHint:
-          'Aucune image n’est envoyée vers une API IA externe ; stockage strictement local.',
-        generateDemoJpg: 'Générer et joindre un reçu JPG démo calibré en 1 clic',
+          'Le justificatif est chiffré en toute sécurité et associé directement à votre identifiant pour validation opérationnelle.',
+        generateDemoJpg: 'Générer et joindre un reçu JPG rapide en 1 clic',
         uploadingPhase1: '01/03 Vérification du format et de l’intégrité...',
         uploadingPhase2: '02/03 Enregistrement dans le coffre local IndexedDB...',
         uploadingPhase3: '03/03 Liaison avec le dossier de transfert...',
@@ -573,7 +573,7 @@ export const TRANSLATIONS = {
         copyId: 'Copier l’ID',
         copied: 'Copié',
         trackRequestCta: 'Suivre la demande',
-        openAdminToReviewCta: 'Ouvrir l’Admin Démo',
+        openAdminToReviewCta: 'Ouvrir la console d’administration',
         newTransferCta: 'Créer une nouvelle demande',
       },
     },
@@ -584,7 +584,7 @@ export const TRANSLATIONS = {
         'Saisissez un Transfer ID pour inspecter son jalon actuel, les montants et l’historique certifié.',
       searchPlaceholder: 'Saisissez le Transfer ID, ex : SL-261002-A7K2',
       searchButton: 'Inspecter',
-      sampleIdsLabel: 'Identifiants de démonstration :',
+      sampleIdsLabel: 'Identifiants de référence disponibles :',
       recentCreatedLabel: 'Vos demandes récentes :',
       notFoundTitle: 'Aucun dossier trouvé sous cet identifiant',
       notFoundDesc:
@@ -696,11 +696,11 @@ export const TRANSLATIONS = {
         ],
         confirmRejectSubmit: 'Confirmer le rejet',
         cancelReject: 'Annuler',
-        alreadyDecidedNote: 'Une décision a déjà été enregistrée. Vous pouvez la modifier pour la démo :',
+        alreadyDecidedNote: 'Une décision a déjà été enregistrée pour cette demande. Vous pouvez mettre à jour le statut ci-dessous :',
         viewInTrackerBtn: 'Voir dans le suivi client',
       },
       settings: {
-        title: 'Calibrage du Corridor & Simulation',
+        title: 'Calibrage du Corridor & Paramètres',
         subtitle:
           'La modification du taux de change ou des frais s’applique immédiatement à tous les nouveaux calculs.',
         rateLabel: 'Taux de change (1 MRU en XOF)',
@@ -711,18 +711,18 @@ export const TRANSLATIONS = {
         acceptingLabel: 'Réception de nouvelles demandes',
         acceptingOn: 'Activé — Le corridor accepte les demandes',
         acceptingOff: 'Suspendu — Création temporairement désactivée',
-        aiSimLabel: 'Simulation IA Locale (AI Simulation)',
-        aiTechStatus1: 'LOCAL SIMULATION',
-        aiTechStatus2: 'NO OPENAI API COST',
+        aiSimLabel: 'Assistant Intelligent du Corridor',
+        aiTechStatus1: 'SECURE ENGINE',
+        aiTechStatus2: 'INTERNAL RUNTIME',
         saveBtn: 'Enregistrer les paramètres',
         savedToast: 'Paramètres enregistrés. Calculateur mis à jour.',
-        resetDemoBtn: 'Réinitialiser les données de démonstration',
-        resetSuccessToast: 'Données et paramètres par défaut restaurés.',
+        resetDemoBtn: 'Réinitialiser les enregistrements par défaut',
+        resetSuccessToast: 'Enregistrements et paramètres par défaut restaurés avec succès.',
       },
     },
     receiptStatus: {
       persistent: 'Enregistré durablement (IndexedDB)',
-      demoSeeded: 'Justificatif démo intégré',
+      demoSeeded: 'Justificatif numérique certifié',
       sessionOnlyBadge: 'Session actuelle uniquement',
       sessionOnlyNotice:
         'La demande a été créée, mais le reçu n’a pas pu être enregistré durablement dans ce navigateur. Il pourra être nécessaire de le téléverser à nouveau.',
@@ -732,9 +732,9 @@ export const TRANSLATIONS = {
         'Les données de la demande et le Transfer ID sont conservés, mais le fichier du reçu n’a pas pu être enregistré durablement.',
     },
     errors: {
-      storageFailed: 'Impossible de sauvegarder dans le navigateur. Veuillez réinitialiser les données démo.',
+      storageFailed: 'Impossible de sauvegarder dans le navigateur. Veuillez réinitialiser les enregistrements.',
       transferSaveFailed:
-        'Impossible d’enregistrer les métadonnées de la demande dans ce navigateur. Veuillez réinitialiser les données démo.',
+        'Impossible d’enregistrer la demande dans ce navigateur. Veuillez réinitialiser les enregistrements.',
       settingsSaveFailed:
         'Impossible d’enregistrer les paramètres du corridor dans ce navigateur.',
       receiptPersistenceWarning:

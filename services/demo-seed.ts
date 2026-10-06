@@ -195,7 +195,7 @@ export function getSeededTransfers(): TransferRequest[] {
         refCode: 'SL-261001-N3P9',
         senderName: 'Mariem Mint Sidi',
         recipientName: 'Yao Konan Serge',
-        amount: '2,900 MRU (MISMATCH DEMO)',
+        amount: '2,900 MRU (DISCREPANCY AUDIT)',
         method: 'Bankily -> MTN Money',
         dateStr: '2026-10-01 19:10 UTC',
       }),

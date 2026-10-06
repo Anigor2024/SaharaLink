@@ -26,6 +26,7 @@ import {
   TransferTimeline,
 } from '@/components/ui/corridor-primitives';
 import { DESIGN_TOKENS } from '@/lib/design-tokens';
+import { ensureEnglishNumerals } from '@/lib/quote-engine';
 import { TransferStatus } from '@/types/corridor';
 
 type FilterStatus = 'all' | TransferStatus;
@@ -164,13 +165,14 @@ export function AdminDashboard() {
 
   const formatTimestamp = (iso: string) => {
     try {
-      return new Intl.DateTimeFormat(language === 'ar' ? 'ar-MR' : 'fr-FR', {
+      const formatted = new Intl.DateTimeFormat(language === 'ar' ? 'ar-u-nu-latn' : 'fr-FR', {
         month: 'short',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'UTC',
       }).format(new Date(iso));
+      return ensureEnglishNumerals(formatted);
     } catch {
       return iso;
     }

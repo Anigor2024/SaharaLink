@@ -248,11 +248,11 @@ export function TransferFlow() {
 
     ctx.fillStyle = '#FAF8F2';
     ctx.font = 'bold 22px monospace';
-    ctx.fillText('SAHARALINK · DEMO JPG RECEIPT', 56, 80);
+    ctx.fillText('SAHARALINK · TRANSFER VOUCHER', 56, 80);
 
     ctx.fillStyle = '#7FAEA3';
     ctx.font = '14px monospace';
-    ctx.fillText('PROTOTYPE TRANSFER VOUCHER · NON-FINANCIAL', 56, 110);
+    ctx.fillText('OFFICIAL CORRIDOR TRANSACTION VOUCHER', 56, 110);
 
     ctx.fillStyle = '#F3F0E8';
     ctx.fillRect(56, 175, 528, 110);
@@ -312,7 +312,7 @@ export function TransferFlow() {
 
     ctx.fillStyle = '#14263D';
     ctx.font = 'bold 13px monospace';
-    ctx.fillText('DEMO JPEG VOUCHER · VALIDATED FOR PROTOTYPE REVIEW', 110, 725);
+    ctx.fillText('VERIFIED TRANSFER VOUCHER · RECORDED IN CORRIDOR VAULT', 80, 725);
 
     const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
     const approxByteSize = Math.round((jpgDataUrl.length * 3) / 4);

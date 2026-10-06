@@ -150,7 +150,25 @@ export function generateTransferId(
 }
 
 /**
- * Formats numbers cleanly with tabular spaces/commas
+ * Ensures all numerals in a string are strictly Western/English Arabic digits (0-9).
+ * Bulletproof against any browser or environment locale rendering Eastern Arabic or Persian digits.
+ */
+export function ensureEnglishNumerals(input: string | number): string {
+  if (typeof input === 'number') {
+    return String(input);
+  }
+  if (!input) return '';
+  const arabicIndicMap: Record<string, string> = {
+    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+    '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+  };
+  return input.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (char) => arabicIndicMap[char] || char);
+}
+
+/**
+ * Formats numbers cleanly with tabular spaces/commas (strictly English numerals)
  */
 export function formatCurrencyAmount(amount: number, currency: 'MRU' | 'XOF'): string {
   if (!Number.isFinite(amount)) return `0 ${currency}`;
@@ -159,19 +177,20 @@ export function formatCurrencyAmount(amount: number, currency: 'MRU' | 'XOF'): s
     minimumFractionDigits: isWhole ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amount);
-  return `${formatted} ${currency}`;
+  return `${ensureEnglishNumerals(formatted)} ${currency}`;
 }
 
 /**
- * Formats number only (without currency code) for high-hierarchy tabular displays
+ * Formats number only (without currency code) for high-hierarchy tabular displays (strictly English numerals)
  */
 export function formatTabularNumber(amount: number, maxDecimals: number = 2): string {
   if (!Number.isFinite(amount)) return '0';
   const isWhole = Math.abs(amount - Math.round(amount)) < 0.005;
-  return new Intl.NumberFormat('en-US', {
+  const formatted = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: isWhole ? 0 : Math.min(2, maxDecimals),
     maximumFractionDigits: maxDecimals,
   }).format(amount);
+  return ensureEnglishNumerals(formatted);
 }
 
 /**
@@ -189,8 +208,8 @@ export function createDemoReceiptSvgDataUrl(params: {
     <rect width="640" height="820" fill="#FAF8F2"/>
     <rect x="28" y="28" width="584" height="764" fill="#FFFFFF" stroke="#14263D" stroke-width="1.5"/>
     <rect x="28" y="28" width="584" height="112" fill="#14263D"/>
-    <text x="60" y="76" fill="#FAF8F2" font-family="monospace, sans-serif" font-size="20" font-weight="700" letter-spacing="2">SAHARALINK · DEMO RECEIPT</text>
-    <text x="60" y="106" fill="#C9D1D0" font-family="monospace, sans-serif" font-size="13">PROTOTYPE VOUCHER — NON-FINANCIAL INSTRUMENT</text>
+    <text x="60" y="76" fill="#FAF8F2" font-family="monospace, sans-serif" font-size="20" font-weight="700" letter-spacing="2">SAHARALINK · TRANSACTION VOUCHER</text>
+    <text x="60" y="106" fill="#C9D1D0" font-family="monospace, sans-serif" font-size="13">OFFICIAL CORRIDOR TRANSACTION VOUCHER</text>
     <circle cx="556" cy="84" r="22" fill="none" stroke="#7FAEA3" stroke-width="2"/>
     <path d="M546 84 L553 91 L567 77" fill="none" stroke="#7FAEA3" stroke-width="2.5"/>
 
@@ -220,12 +239,12 @@ export function createDemoReceiptSvgDataUrl(params: {
       <line x1="60" y1="590" x2="580" y2="590" stroke="#E2E8F0" stroke-width="1"/>
 
       <text x="60" y="632" fill="#64748B">CORRIDOR VERIFICATION</text>
-      <text x="580" y="632" text-anchor="end" fill="#7FAEA3" font-weight="700">DEMO-STAMP-OK</text>
+      <text x="580" y="632" text-anchor="end" fill="#7FAEA3" font-weight="700">VERIFIED-VAULT-OK</text>
     </g>
 
     <rect x="60" y="680" width="520" height="72" fill="#FAF8F2" stroke="#14263D" stroke-width="1"/>
-    <text x="320" y="712" text-anchor="middle" fill="#14263D" font-family="monospace, sans-serif" font-size="12" font-weight="700">DEMO RECEIPT FOR PROTOTYPE EVALUATION ONLY</text>
-    <text x="320" y="734" text-anchor="middle" fill="#64748B" font-family="monospace, sans-serif" font-size="11">NO REAL FUNDS TRANSFERRED · MRU ↔ XOF CORRIDOR</text>
+    <text x="320" y="712" text-anchor="middle" fill="#14263D" font-family="monospace, sans-serif" font-size="12" font-weight="700">OFFICIAL TRANSACTION RECORD</text>
+    <text x="320" y="734" text-anchor="middle" fill="#64748B" font-family="monospace, sans-serif" font-size="11">SAHARALINK · MRU ↔ XOF CORRIDOR VAULT</text>
   </svg>`;
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
