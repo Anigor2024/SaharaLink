@@ -248,7 +248,7 @@ export function SaharaLinkApp() {
                         <span>
                           {dict.quote.exchangeRateLabel}:{' '}
                           <strong className="text-[#10161F]">
-                            1 : {settings.exchangeRateMruToXof.toFixed(2)}
+                            1 : {ensureEnglishNumerals(settings.exchangeRateMruToXof.toFixed(2))}
                           </strong>
                         </span>
                         <span aria-hidden="true" className="text-[#C9D1D0]">
@@ -256,8 +256,8 @@ export function SaharaLinkApp() {
                         </span>
                         <span className="text-[#1F5C50] font-semibold">
                           {language === 'ar'
-                            ? 'تسليم فوري للمحافظ الرقمية المعتمدة'
-                            : 'Règlement instantané vers portefeuilles partenaires'}
+                            ? 'عرض المبلغ الصافي وتفاصيل الرسوم قبل الإرسال'
+                            : 'Montant net et frais détaillés affichés avant envoi'}
                         </span>
                       </div>
 
@@ -472,19 +472,19 @@ export function SaharaLinkApp() {
                     {/* Step 2: Inspector */}
                     <div className="bg-[#F3F0E8] p-6 space-y-3 border-t-2 border-[#14263D]">
                       <span className="font-mono text-xs font-bold text-[#14263D] uppercase block">
-                        02 · VOUCHER INSPECTOR
+                        02 · RECEIPT AUDIT
                       </span>
                       <h3 className="text-lg font-semibold text-[#10161F]">
                         {dict.admin.drawer.receiptBox}
                       </h3>
                       <p className="text-xs text-[#14263D]/75 leading-relaxed">
                         {language === 'ar'
-                          ? 'معاينة الوصل البنكي المكبر وفحص سلامة التوثيق ورقم العملية.'
+                          ? 'معاينة الوصل البنكي وفحص سلامة التوثيق ورقم العملية محلياً.'
                           : 'Visualisation agrandie du reçu bancaire et audit des références.'}
                       </p>
                       <div className="pt-2 flex items-center gap-2 text-xs font-mono text-[#1F5C50]">
                         <FileCheck2 className="w-4 h-4" />
-                        <span>IndexedDB Vault</span>
+                        <span>{language === 'ar' ? 'تخزين محلي آمن في المتصفح' : 'Stockage local dans le navigateur'}</span>
                       </div>
                     </div>
 

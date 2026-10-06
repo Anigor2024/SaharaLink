@@ -765,7 +765,7 @@ export function AdminDashboard() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#C9D1D0]">RECEIPT VAULT</span>
+                <span className="text-[#C9D1D0]">RECEIPT STORAGE</span>
                 <span className="font-bold text-[#7FAEA3]">INDEXEDDB + FALLBACK</span>
               </div>
               <div className="flex items-center justify-between">
@@ -952,7 +952,7 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* 5. RECEIPT VOUCHER */}
+                {/* 5. RECEIPT ATTACHMENT */}
                 <div className="space-y-2">
                   <span className="font-mono text-[11px] font-bold text-[#14263D] uppercase tracking-wider block">
                     {dict.admin.drawer.receiptBox}
@@ -964,6 +964,7 @@ export function AdminDashboard() {
                     mimeType={selectedTransfer.receiptMimeType}
                     persistenceStatus={selectedTransfer.receiptPersistenceStatus}
                     isSeededDemo={selectedTransfer.isSeededDemo}
+                    sha256={selectedTransfer.receiptSha256}
                     readonly
                   />
                 </div>

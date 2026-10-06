@@ -208,8 +208,8 @@ export function createDemoReceiptSvgDataUrl(params: {
     <rect width="640" height="820" fill="#FAF8F2"/>
     <rect x="28" y="28" width="584" height="764" fill="#FFFFFF" stroke="#14263D" stroke-width="1.5"/>
     <rect x="28" y="28" width="584" height="112" fill="#14263D"/>
-    <text x="60" y="76" fill="#FAF8F2" font-family="monospace, sans-serif" font-size="20" font-weight="700" letter-spacing="2">SAHARALINK · TRANSACTION VOUCHER</text>
-    <text x="60" y="106" fill="#C9D1D0" font-family="monospace, sans-serif" font-size="13">OFFICIAL CORRIDOR TRANSACTION VOUCHER</text>
+    <text x="60" y="76" fill="#FAF8F2" font-family="monospace, sans-serif" font-size="20" font-weight="700" letter-spacing="2">SAHARALINK · TRANSFER RECEIPT RECORD</text>
+    <text x="60" y="106" fill="#C9D1D0" font-family="monospace, sans-serif" font-size="13">DECLARED TRANSFER RECEIPT DOCUMENT</text>
     <circle cx="556" cy="84" r="22" fill="none" stroke="#7FAEA3" stroke-width="2"/>
     <path d="M546 84 L553 91 L567 77" fill="none" stroke="#7FAEA3" stroke-width="2.5"/>
 
@@ -238,13 +238,13 @@ export function createDemoReceiptSvgDataUrl(params: {
       <text x="580" y="570" text-anchor="end" fill="#10161F" font-weight="600">${escapeXml(params.dateStr)}</text>
       <line x1="60" y1="590" x2="580" y2="590" stroke="#E2E8F0" stroke-width="1"/>
 
-      <text x="60" y="632" fill="#64748B">CORRIDOR VERIFICATION</text>
-      <text x="580" y="632" text-anchor="end" fill="#7FAEA3" font-weight="700">VERIFIED-VAULT-OK</text>
+      <text x="60" y="632" fill="#64748B">ATTACHMENT STATUS</text>
+      <text x="580" y="632" text-anchor="end" fill="#7FAEA3" font-weight="700">UPLOADED-FOR-REVIEW</text>
     </g>
 
     <rect x="60" y="680" width="520" height="72" fill="#FAF8F2" stroke="#14263D" stroke-width="1"/>
-    <text x="320" y="712" text-anchor="middle" fill="#14263D" font-family="monospace, sans-serif" font-size="12" font-weight="700">OFFICIAL TRANSACTION RECORD</text>
-    <text x="320" y="734" text-anchor="middle" fill="#64748B" font-family="monospace, sans-serif" font-size="11">SAHARALINK · MRU ↔ XOF CORRIDOR VAULT</text>
+    <text x="320" y="712" text-anchor="middle" fill="#14263D" font-family="monospace, sans-serif" font-size="12" font-weight="700">CORRIDOR TRANSFER RECORD</text>
+    <text x="320" y="734" text-anchor="middle" fill="#64748B" font-family="monospace, sans-serif" font-size="11">SAHARALINK · MRU ↔ XOF CORRIDOR</text>
   </svg>`;
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;

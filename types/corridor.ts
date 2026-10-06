@@ -26,7 +26,7 @@ export interface TimelineEvent {
   id: string;
   step: TimelineStepKey;
   timestamp: string;
-  actor?: 'customer' | 'system' | 'admin';
+  actor?: 'customer' | 'system' | 'admin' | 'operations';
   note?: string;
 }
 
@@ -68,11 +68,52 @@ export interface TransferRequest {
   receiptFileName: string;
   receiptFileSize: number;
   receiptMimeType: string;
+  receiptSha256?: string; // Web Crypto SHA-256 digest for local duplicate detection
+  receiptUploadedAt?: string;
   status: TransferStatus;
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   timeline: TimelineEvent[];
+}
+
+export interface RecentQuoteItem {
+  id: string;
+  timestamp: string;
+  direction: TransferDirection;
+  amountSent: number;
+  estimatedReceived: number;
+  exchangeRate: number;
+  fee: number;
+}
+
+export interface SavedRecipient {
+  id: string;
+  name: string;
+  phone: string;
+  receivingMethod: ReceivingMethod;
+  lastUsedAt: string;
+}
+
+export interface InAppNotification {
+  id: string;
+  titleAr: string;
+  titleFr: string;
+  detailAr: string;
+  detailFr: string;
+  timestamp: string;
+  transferId?: string;
+  isRead: boolean;
+  type: 'created' | 'status_change' | 'settings_updated';
+}
+
+export interface SettingHistoryItem {
+  id: string;
+  timestamp: string;
+  rate: number;
+  fee: number;
+  min: number;
+  max: number;
 }
 
 export interface CorridorSettings {
@@ -120,6 +161,7 @@ export interface CreateTransferInput {
   receiptFileName: string;
   receiptFileSize: number;
   receiptMimeType: string;
+  receiptSha256?: string;
   receiptUploadedAt?: string;
 }
 

@@ -12,6 +12,8 @@ import {
   Compass,
   Copy,
   FileImage,
+  Printer,
+  QrCode,
   ShieldCheck,
   Sparkles,
   Upload,
@@ -24,6 +26,8 @@ import {
   StatusBadge,
   TransferRoute,
 } from '@/components/ui/corridor-primitives';
+import { computeSha256Hex } from '@/lib/crypto-utils';
+import { QrCodeSvg } from '@/lib/qr-generator';
 import {
   CORRIDOR_NODES,
   DESIGN_TOKENS,
@@ -81,6 +85,7 @@ export function TransferFlow() {
   const [receiptFileName, setReceiptFileName] = useState<string>('');
   const [receiptFileSize, setReceiptFileSize] = useState<number>(0);
   const [receiptMimeType, setReceiptMimeType] = useState<string>('');
+  const [receiptSha256, setReceiptSha256] = useState<string>('');
   const [receiptUploadedAt, setReceiptUploadedAt] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,6 +94,7 @@ export function TransferFlow() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRequest, setSubmittedRequest] = useState<TransferRequest | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   const numericAmount = Number(amountInput.replace(/,/g, ''));
   const quote = calculateTransferQuote(numericAmount, direction, settings);
@@ -167,6 +173,13 @@ export function TransferFlow() {
     setUploadError(null);
     setUploadState('UPLOADING');
     setUploadPhase(1);
+
+    // Compute cryptographic SHA-256 fingerprint locally
+    computeSha256Hex(dataUrl).then((hash) => {
+      setReceiptSha256(hash);
+    }).catch(() => {
+      setReceiptSha256('hash-' + Date.now().toString(36));
+    });
 
     setTimeout(() => setUploadPhase(2), 130);
     setTimeout(() => setUploadPhase(3), 260);
@@ -248,11 +261,11 @@ export function TransferFlow() {
 
     ctx.fillStyle = '#FAF8F2';
     ctx.font = 'bold 22px monospace';
-    ctx.fillText('SAHARALINK · TRANSFER VOUCHER', 56, 80);
+    ctx.fillText('SAHARALINK · TRANSFER RECEIPT RECORD', 56, 80);
 
     ctx.fillStyle = '#7FAEA3';
     ctx.font = '14px monospace';
-    ctx.fillText('OFFICIAL CORRIDOR TRANSACTION VOUCHER', 56, 110);
+    ctx.fillText('DECLARED TRANSFER RECEIPT DOCUMENT', 56, 110);
 
     ctx.fillStyle = '#F3F0E8';
     ctx.fillRect(56, 175, 528, 110);
@@ -312,7 +325,7 @@ export function TransferFlow() {
 
     ctx.fillStyle = '#14263D';
     ctx.font = 'bold 13px monospace';
-    ctx.fillText('VERIFIED TRANSFER VOUCHER · RECORDED IN CORRIDOR VAULT', 80, 725);
+    ctx.fillText('TRANSFER RECEIPT ATTACHMENT · LINKED TO REQUEST ID', 80, 725);
 
     const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
     const approxByteSize = Math.round((jpgDataUrl.length * 3) / 4);
@@ -340,6 +353,7 @@ export function TransferFlow() {
         receiptFileName,
         receiptFileSize,
         receiptMimeType,
+        receiptSha256,
         receiptUploadedAt,
       });
       setSubmittedRequest(created);
@@ -367,6 +381,7 @@ export function TransferFlow() {
     setReceiptDataUrl('');
     setReceiptFileName('');
     setReceiptFileSize(0);
+    setReceiptSha256('');
     setUploadState('EMPTY');
   };
 
@@ -501,6 +516,35 @@ export function TransferFlow() {
                 </span>
               </p>
             </div>
+          </div>
+
+          {/* Quick QR Code Tracking & Printable Voucher Strip */}
+          <div className="p-4 bg-[#F3F0E8] border border-[#C9D1D0] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-[#FAF8F2] border border-[#C9D1D0]">
+                <QrCodeSvg value={`saharalink:${submittedRequest.id}`} size={64} foreground="#10161F" background="#FAF8F2" />
+              </div>
+              <div className="text-xs">
+                <span className="font-mono font-bold text-[#10161F] block">
+                  {language === 'ar' ? 'رمز الاستجابة السريعة (QR)' : 'Code QR de suivi'}
+                </span>
+                <span className="text-[#14263D]/70 font-mono text-[11px] block mt-0.5">
+                  {submittedRequest.id}
+                </span>
+                <p className="text-[11px] text-[#14263D]/60 mt-0.5">
+                  {language === 'ar' ? 'امسح الرمز للتتبع الفوري عبر الهاتف' : 'Scannez pour suivre directement sur mobile'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#FAF8F2] hover:bg-[#14263D] hover:text-[#FAF8F2] text-[#14263D] border border-[#14263D]/30 text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            >
+              <Printer className="w-4 h-4 text-[#7FAEA3]" />
+              <span>{language === 'ar' ? 'طباعة ملخص الطلب' : 'Imprimer le récapitulatif'}</span>
+            </button>
           </div>
 
           {/* Primary Actions */}
@@ -1281,12 +1325,14 @@ export function TransferFlow() {
                     fileName={receiptFileName}
                     fileSize={receiptFileSize}
                     mimeType={receiptMimeType}
+                    sha256={receiptSha256}
                     onReplace={() => fileInputRef.current?.click()}
                     onRemove={() => {
                       setReceiptDataUrl('');
                       setReceiptFileName('');
                       setReceiptFileSize(0);
                       setReceiptMimeType('');
+                      setReceiptSha256('');
                       setUploadState('EMPTY');
                     }}
                   />
@@ -1435,6 +1481,7 @@ export function TransferFlow() {
                   fileName={receiptFileName}
                   fileSize={receiptFileSize}
                   mimeType={receiptMimeType}
+                  sha256={receiptSha256}
                   readonly
                 />
               )}

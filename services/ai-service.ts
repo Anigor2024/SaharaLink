@@ -169,7 +169,7 @@ export class MockAIService implements AIService {
         if (quote.validationError === 'below_min') {
           errorExplanation =
             language === 'ar'
-              ? `المبلغ المدخل (${formatCurrencyAmount(amount, quote.originCurrency)}) أقل من الحد الأدنى المعتمد حالياً في المسار وهو ${formatCurrencyAmount(quote.minAllowedInOrigin, quote.originCurrency)}.`
+              ? `المبلغ المدخل (${formatCurrencyAmount(amount, quote.originCurrency)}) أقل من الحد الأدنى المحدد حالياً في المسار وهو ${formatCurrencyAmount(quote.minAllowedInOrigin, quote.originCurrency)}.`
               : `Le montant saisi (${formatCurrencyAmount(amount, quote.originCurrency)}) est inférieur au minimum autorisé de ${formatCurrencyAmount(quote.minAllowedInOrigin, quote.originCurrency)}.`;
         } else if (quote.validationError === 'above_max') {
           errorExplanation =
@@ -225,7 +225,7 @@ export class MockAIService implements AIService {
       const inverse1000 = ((1000 / settings.exchangeRateMruToXof)).toFixed(2);
       const replyText =
         language === 'ar'
-          ? `سعر الصرف المعتمد حالياً في المسار:\n• 1 أوقية موريتانية (MRU) = ${settings.exchangeRateMruToXof.toFixed(2)} فرنك غرب أفريقي (XOF)\n• 1,000 فرنك (XOF) = ${inverse1000} أوقية (MRU)\n\nاكتب أي مبلغ (مثلاً: "حول 2500 أوقية") وسأحسب لك الصافي فوراً.`
+          ? `سعر الصرف المحدد حالياً في المسار:\n• 1 أوقية موريتانية (MRU) = ${settings.exchangeRateMruToXof.toFixed(2)} فرنك غرب أفريقي (XOF)\n• 1,000 فرنك (XOF) = ${inverse1000} أوقية (MRU)\n\nاكتب أي مبلغ (مثلاً: "حول 2500 أوقية") وسأحسب لك الصافي فوراً.`
           : `Taux de change actuellement actif dans le corridor :\n• 1 MRU = ${settings.exchangeRateMruToXof.toFixed(2)} XOF\n• 1 000 XOF = ${inverse1000} MRU\n\nIndiquez un montant (ex : "Convertir 2500 MRU") pour obtenir le décompte exact.`;
 
       return {

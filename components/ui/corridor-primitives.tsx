@@ -601,6 +601,7 @@ export function ReceiptPreview({
   mimeType,
   persistenceStatus = 'persistent',
   isSeededDemo = false,
+  sha256,
   onReplace,
   onRemove,
   readonly = false,
@@ -611,6 +612,7 @@ export function ReceiptPreview({
   mimeType?: string;
   persistenceStatus?: ReceiptPersistenceStatus;
   isSeededDemo?: boolean;
+  sha256?: string;
   onReplace?: () => void;
   onRemove?: () => void;
   readonly?: boolean;
@@ -620,7 +622,7 @@ export function ReceiptPreview({
 
   const formattedSize = fileSize
     ? `${(fileSize / 1024).toFixed(1)} KB`
-    : 'INDEXED VOUCHER';
+    : 'ATTACHED RECEIPT';
 
   const formatBadge = mimeType
     ? mimeType.replace('image/', '').toUpperCase()
@@ -711,6 +713,18 @@ export function ReceiptPreview({
             )}
           </div>
         </div>
+
+        {/* Cryptographic SHA-256 Local Checksum */}
+        {sha256 && (
+          <div className="px-3.5 py-1.5 bg-[#F3F0E8] border-b border-[#C9D1D0]/40 flex items-center justify-between gap-2 text-[10px] font-mono text-[#14263D]/80">
+            <span className="truncate">
+              SHA-256: <span className="font-bold text-[#10161F]">{sha256.slice(0, 16)}...{sha256.slice(-8)}</span>
+            </span>
+            <span className="text-[#1F5C50] shrink-0 font-semibold uppercase tracking-wider">
+              {dict.language === 'ar' ? 'فحص البصمة محلياً' : 'Vérifié localement'}
+            </span>
+          </div>
+        )}
 
         {/* Session-Only Warning Strip */}
         {isSessionOnly && (

@@ -146,28 +146,28 @@ export function CorridorHero() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-[#C9D1D0]/15 text-xs text-[#C9D1D0]/80">
               <div className="space-y-1">
                 <span className="font-mono text-[11px] text-[#7FAEA3] font-bold block">
-                  01 · ZERO HIDDEN FEES
+                  01 · TRANSPARENT FEES
                 </span>
                 <p className="font-medium text-[#FAF8F2]">
-                  {language === 'ar' ? '25 أوقية رسوم ثابتة فقط' : 'Frais fixes à 25 MRU'}
+                  {language === 'ar' ? 'رسوم واضحة قبل إنشاء الطلب' : 'Frais fixes transparents'}
                 </p>
               </div>
 
               <div className="space-y-1">
                 <span className="font-mono text-[11px] text-[#7FAEA3] font-bold block">
-                  02 · LIVE STATUS
+                  02 · ORDER TRACKING
                 </span>
                 <p className="font-medium text-[#FAF8F2]">
-                  {language === 'ar' ? 'تتبع لحظي متزامن' : 'Traçabilité en direct'}
+                  {language === 'ar' ? 'سجل زمني لكل تحديث' : 'Historique horodaté'}
                 </p>
               </div>
 
               <div className="space-y-1">
                 <span className="font-mono text-[11px] text-[#7FAEA3] font-bold block">
-                  03 · MOBILE WALLET
+                  03 · MOBILE WALLETS
                 </span>
                 <p className="font-medium text-[#FAF8F2]">
-                  {language === 'ar' ? 'تسليم فوري ومباشر' : 'Règlement instantané'}
+                  {language === 'ar' ? 'عرض المبلغ قبل الإرسال' : 'Montant net vérifié'}
                 </p>
               </div>
             </div>
@@ -227,8 +227,8 @@ export function CorridorHero() {
                   <div className="flex items-center justify-between text-[11px] font-mono text-[#7FAEA3]">
                     <span dir="ltr">RATE: 1 MRU = {ensureEnglishNumerals(settings.exchangeRateMruToXof.toFixed(2))} XOF</span>
                     <span className="inline-flex items-center gap-1 text-[#C9D1D0]">
-                      <Zap className="w-3 h-3 text-[#DE655A]" />
-                      <span>{language === 'ar' ? 'تسليم فوري' : 'Instantané'}</span>
+                      <Zap className="w-3 h-3 text-[#7FAEA3]" />
+                      <span>{language === 'ar' ? 'حساب مباشر' : 'Calcul direct'}</span>
                     </span>
                   </div>
 
@@ -312,16 +312,16 @@ export function CorridorHero() {
               {/* Integrated Trust & Operational Signal Markers (Secondary visual layer filling the space) */}
               <div className="grid grid-cols-3 gap-2 pt-2 text-[10px] font-mono text-[#C9D1D0]/70">
                 <div className="p-2 bg-[#14263D]/20 border-t border-[#C9D1D0]/10">
-                  <span className="text-[#7FAEA3] block font-bold">256-BIT</span>
-                  <span>ENCRYPTED VAULT</span>
+                  <span className="text-[#7FAEA3] block font-bold">FIXED FEE</span>
+                  <span>{language === 'ar' ? 'رسوم واضحة مسبقاً' : 'FRAIS FIXES CLAIRS'}</span>
                 </div>
                 <div className="p-2 bg-[#14263D]/20 border-t border-[#C9D1D0]/10">
-                  <span className="text-[#7FAEA3] block font-bold">ZERO</span>
-                  <span>HIDDEN SPREAD</span>
+                  <span className="text-[#7FAEA3] block font-bold">TIMELINE</span>
+                  <span>{language === 'ar' ? 'سجل زمني لكل تحديث' : 'SUIVI HORODATÉ'}</span>
                 </div>
                 <div className="p-2 bg-[#14263D]/20 border-t border-[#C9D1D0]/10">
-                  <span className="text-[#7FAEA3] block font-bold">&lt; 15 MIN</span>
-                  <span>SETTLEMENT</span>
+                  <span className="text-[#7FAEA3] block font-bold">UNIQUE ID</span>
+                  <span>{language === 'ar' ? 'معرّف تتبع لكل طلب' : 'CODE DE SUIVI UNIQUE'}</span>
                 </div>
               </div>
             </div>

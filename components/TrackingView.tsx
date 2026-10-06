@@ -8,6 +8,7 @@ import {
   Clock,
   Compass,
   Copy,
+  Printer,
   Radio,
   Search,
   ShieldCheck,
@@ -23,6 +24,8 @@ import {
   TransferTimeline,
 } from '@/components/ui/corridor-primitives';
 import { DESIGN_TOKENS } from '@/lib/design-tokens';
+import { QrCodeSvg } from '@/lib/qr-generator';
+import { ensureEnglishNumerals } from '@/lib/quote-engine';
 
 const SAMPLE_IDS = ['SL-261002-A7K2', 'SL-261002-M9R4', 'SL-261001-N3P9'];
 
@@ -341,7 +344,7 @@ export function TrackingView() {
 
               <TransferRoute
                 direction={currentTransfer.direction}
-                centerLabel={`1 MRU = ${currentTransfer.exchangeRate.toFixed(2)} XOF`}
+                centerLabel={`1 MRU = ${ensureEnglishNumerals(currentTransfer.exchangeRate.toFixed(2))} XOF`}
               />
 
               {/* Amount Journey Box */}
@@ -377,10 +380,10 @@ export function TrackingView() {
 
                 <div className="sm:col-span-2 pt-3 border-t border-[#C9D1D0]/15 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-[#C9D1D0]/80">
                   <span>
-                    {dict.quote.feeLabel}: {currentTransfer.fee}{' '}
+                    {dict.quote.feeLabel}: {ensureEnglishNumerals(currentTransfer.fee)}{' '}
                     {currentTransfer.originCurrency}
                   </span>
-                  <span>1 MRU = {currentTransfer.exchangeRate.toFixed(2)} XOF</span>
+                  <span>1 MRU = {ensureEnglishNumerals(currentTransfer.exchangeRate.toFixed(2))} XOF</span>
                 </div>
               </div>
 
@@ -420,7 +423,7 @@ export function TrackingView() {
                 </div>
               </div>
 
-              {/* Receipt Voucher */}
+              {/* Receipt Attachment & Audit */}
               <ReceiptPreview
                 dataUrl={currentTransfer.receiptDataUrl}
                 fileName={currentTransfer.receiptFileName}
@@ -428,8 +431,35 @@ export function TrackingView() {
                 mimeType={currentTransfer.receiptMimeType}
                 persistenceStatus={currentTransfer.receiptPersistenceStatus}
                 isSeededDemo={currentTransfer.isSeededDemo}
+                sha256={currentTransfer.receiptSha256}
                 readonly
               />
+
+              {/* Quick QR Code Tracking & Printable Summary Strip */}
+              <div className="p-4 bg-[#F3F0E8] border border-[#C9D1D0] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-[#FAF8F2] border border-[#C9D1D0]">
+                    <QrCodeSvg value={`saharalink:${currentTransfer.id}`} size={56} foreground="#10161F" background="#FAF8F2" />
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-mono font-bold text-[#10161F] block">
+                      {dict.language === 'ar' ? 'رمز تتبع فوري (QR)' : 'Code QR de suivi'}
+                    </span>
+                    <span className="text-[#14263D]/70 font-mono text-[11px] block mt-0.5">
+                      {currentTransfer.id}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#FAF8F2] hover:bg-[#14263D] hover:text-[#FAF8F2] text-[#14263D] border border-[#14263D]/30 text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-[#7FAEA3]" />
+                  <span>{dict.language === 'ar' ? 'طباعة تقرير الطلب' : 'Imprimer le dossier'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Right Column: Detailed Operational Timeline & Admin Inspector Link (5 Cols) */}

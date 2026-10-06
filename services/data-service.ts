@@ -352,6 +352,8 @@ export class LocalDemoDataService implements DataService {
       receiptFileName: sanitizeText(input.receiptFileName),
       receiptFileSize: input.receiptFileSize,
       receiptMimeType: input.receiptMimeType,
+      receiptSha256: input.receiptSha256,
+      receiptUploadedAt: receiptTimeIso,
       status: 'pending',
       createdAt: nowIso,
       updatedAt: nowIso,
